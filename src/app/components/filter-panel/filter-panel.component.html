@@ -1,0 +1,137 @@
+<aside class="flex h-full flex-col overflow-y-auto border-r border-line bg-panel px-4 py-5" aria-label="Filtri della mappa">
+  <h2 class="text-[11px] font-semibold uppercase tracking-wider2 text-ink-soft">Filtri</h2>
+
+  <!-- Provincia -->
+  <div class="mt-4">
+    <label for="provincia" class="mb-1.5 block text-xs font-medium text-ink">Provincia</label>
+    <select
+      id="provincia"
+      [ngModel]="filtri().provincia ?? ''"
+      (ngModelChange)="cambiaProvincia($event)"
+      class="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+    >
+      <option value="">Tutte le province</option>
+      @for (p of province; track p.code) {
+        <option [value]="p.code">{{ p.code }} — {{ p.label }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- Metrica di colorazione -->
+  <div class="mt-5">
+    <p class="mb-2 text-xs font-medium text-ink">Colora la mappa su</p>
+
+    <button
+      type="button"
+      role="switch"
+      [attr.aria-checked]="filtri().soloFemminili"
+      (click)="toggleFemminili()"
+      class="flex w-full items-center justify-between rounded-lg border border-line px-3 py-2.5 text-left transition hover:border-brand/40 hover:bg-surface"
+    >
+      <span class="text-sm text-ink">Solo imprese femminili</span>
+      <span
+        class="relative h-5 w-9 shrink-0 rounded-full transition"
+        [class]="filtri().soloFemminili ? 'bg-brand' : 'bg-line'"
+      >
+        <span
+          class="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all"
+          [class]="filtri().soloFemminili ? 'left-[1.125rem]' : 'left-0.5'"
+        ></span>
+      </span>
+    </button>
+
+    <button
+      type="button"
+      role="switch"
+      [attr.aria-checked]="filtri().soloGiovanili"
+      (click)="toggleGiovanili()"
+      class="mt-2 flex w-full items-center justify-between rounded-lg border border-line px-3 py-2.5 text-left transition hover:border-brand/40 hover:bg-surface"
+    >
+      <span class="text-sm text-ink">Solo imprese giovanili</span>
+      <span
+        class="relative h-5 w-9 shrink-0 rounded-full transition"
+        [class]="filtri().soloGiovanili ? 'bg-brand' : 'bg-line'"
+      >
+        <span
+          class="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all"
+          [class]="filtri().soloGiovanili ? 'left-[1.125rem]' : 'left-0.5'"
+        ></span>
+      </span>
+    </button>
+
+    <p class="mt-2 text-[11px] leading-relaxed text-ink-soft">
+      Con entrambi spenti la mappa è colorata sulla densità imprenditoriale
+      (imprese ogni 1.000 abitanti).
+    </p>
+  </div>
+
+  <!-- Soglia minima -->
+  <div class="mt-5">
+    <div class="mb-1.5 flex items-baseline justify-between">
+      <label for="soglia" class="text-xs font-medium text-ink">Soglia minima imprese</label>
+      <span class="text-xs font-semibold tabular-nums text-brand">{{ filtri().sogliaMinima }}</span>
+    </div>
+    <input
+      id="soglia"
+      type="range"
+      min="0"
+      max="500"
+      step="10"
+      [ngModel]="filtri().sogliaMinima"
+      (ngModelChange)="cambiaSoglia($event)"
+      class="w-full accent-brand"
+    />
+    <div class="flex justify-between text-[10px] tabular-nums text-ink-soft">
+      <span>0</span>
+      <span>500</span>
+    </div>
+    <p class="mt-1 text-[11px] leading-relaxed text-ink-soft">
+      I comuni sotto soglia restano visibili ma spenti, fuori dalla scala colori.
+    </p>
+  </div>
+
+  <button
+    type="button"
+    (click)="reset()"
+    [disabled]="!filtriAttivi"
+    class="mt-5 w-full rounded-lg border border-line px-3 py-2 text-sm font-medium text-ink transition hover:border-brand/40 hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40"
+  >
+    Reset filtri
+  </button>
+
+  <!-- Riepilogo -->
+  <div class="mt-6 rounded-xl border border-brand/20 bg-brand/5 p-3.5">
+    <p class="text-[10px] font-semibold uppercase tracking-wider2 text-brand">Selezione corrente</p>
+    <p class="mt-2 text-2xl font-semibold leading-none tabular-nums text-brand">
+      {{ comuniVisibili | number: '1.0-0' }}
+      <span class="text-xs font-normal text-ink-soft">comuni</span>
+    </p>
+    <p class="mt-1.5 text-base font-semibold leading-none tabular-nums text-ink">
+      {{ impreseVisibili | number: '1.0-0' }}
+      <span class="text-xs font-normal text-ink-soft">imprese</span>
+    </p>
+  </div>
+
+  <div class="mt-3 rounded-xl border border-line p-3.5">
+    <p class="text-[10px] font-semibold uppercase tracking-wider2 text-ink-soft">Regione</p>
+    <dl class="mt-2 space-y-1.5 text-xs">
+      <div class="flex justify-between">
+        <dt class="text-ink-soft">Comuni</dt>
+        <dd class="font-semibold tabular-nums text-ink">{{ statistiche().comuni }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-ink-soft">Imprese</dt>
+        <dd class="font-semibold tabular-nums text-ink">{{ statistiche().totaleImprese | number: '1.0-0' }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-ink-soft">Densità media</dt>
+        <dd class="font-semibold tabular-nums text-ink">{{ statistiche().densitaMedia | number: '1.1-1' }}</dd>
+      </div>
+    </dl>
+  </div>
+
+  <p class="mt-auto pt-6 text-[10px] leading-relaxed text-ink-soft">
+    Confini ISTAT. Valori imprenditoriali dimostrativi, in attesa del collegamento
+    a dati.puglia.it.
+  </p>
+</aside>

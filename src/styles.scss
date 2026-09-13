@@ -1,0 +1,229 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===============================================================
+   TEMI
+
+   Ogni colore è una tripletta RGB in una variabile CSS, così le
+   classi Tailwind (che la avvolgono in rgb(... / <alpha-value>))
+   restano identiche e cambia solo il valore sotto. Un tema è quindi
+   un blocco di variabili, non un insieme di classi alternative.
+
+   Il tema chiaro e il tema scuro sono due declinazioni della stessa
+   famiglia verde: cambia la direzione della luce, non la tinta.
+   =============================================================== */
+
+:root,
+[data-theme='chiaro'] {
+  color-scheme: light;
+
+  --c-canvas: 231 241 233; /* tela della mappa */
+  --c-shell: 11 63 44; /* navbar, intestazioni forti */
+  --c-shell-2: 18 81 57;
+  --c-shell-3: 28 106 77;
+  --c-panel: 215 232 220; /* sidebar filtri, sfondo guida */
+  --c-surface: 237 244 238; /* sfondo generico */
+  --c-card: 255 255 255;
+  --c-line: 195 216 201;
+
+  --c-ink: 10 31 23;
+  --c-ink-soft: 65 89 77;
+  --c-ink-dim: 159 188 172; /* testo tenue sulle superfici shell */
+
+  --c-brand: 0 101 62;
+  --c-brand-2: 23 160 107;
+  --c-brand-ink: 0 86 53;
+  --c-mint: 105 209 159;
+  --c-mint-pale: 149 233 191;
+
+  --c-gold: 176 138 32;
+  --c-gold-ink: 119 89 12;
+  --c-gold-2: 213 181 95;
+  --c-gold-pale: 236 210 139;
+
+  --c-up: 6 122 75;
+  --c-down: 180 35 43;
+
+  --ombra-pannello: 0 16px 40px -20px rgba(10, 31, 23, 0.35);
+}
+
+[data-theme='scuro'] {
+  color-scheme: dark;
+
+  --c-canvas: 11 32 24;
+  --c-shell: 7 21 15;
+  --c-shell-2: 18 39 29;
+  --c-shell-3: 29 59 45;
+  --c-panel: 12 35 26;
+  --c-surface: 8 24 17;
+  --c-card: 14 36 25;
+  --c-line: 30 61 46;
+
+  --c-ink: 232 243 236;
+  --c-ink-soft: 163 188 175;
+  --c-ink-dim: 138 167 154;
+
+  --c-brand: 23 160 107;
+  --c-brand-2: 51 190 132;
+  --c-brand-ink: 105 209 159;
+  --c-mint: 105 209 159;
+  --c-mint-pale: 149 233 191;
+
+  --c-gold: 201 162 39;
+  --c-gold-ink: 213 181 95;
+  --c-gold-2: 236 210 139;
+  --c-gold-pale: 236 210 139;
+
+  --c-up: 52 201 139;
+  --c-down: 241 112 122;
+
+  --ombra-pannello: 0 16px 40px -20px rgba(0, 0, 0, 0.75);
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background-color: rgb(var(--c-surface));
+  color: rgb(var(--c-ink));
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------------------------------------------------------
+   Override per Leaflet, che inietta markup fuori dal controllo di
+   Angular e delle classi Tailwind.
+   --------------------------------------------------------------- */
+
+/* La mappa non carica tile: la tela è un colore pieno e si vede
+   solo la Puglia disegnata dal GeoJSON. */
+.leaflet-container {
+  background: rgb(var(--c-canvas));
+  font-family: inherit;
+  outline: none;
+}
+
+/* I controlli Leaflet stanno a z-index 1000: abbassandoli, il pannello di
+   dettaglio (z-700) può scorrere sopra la legenda invece che sotto. */
+.leaflet-container .leaflet-top,
+.leaflet-container .leaflet-bottom {
+  z-index: 600;
+}
+
+/* Lascia libero l'angolo occupato dal bottone flottante. */
+.leaflet-bottom.leaflet-right {
+  margin-right: 4.5rem;
+}
+
+.leaflet-touch .leaflet-bar,
+.leaflet-bar {
+  border: none;
+  box-shadow: var(--ombra-pannello);
+}
+
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background: rgb(var(--c-card));
+  border-bottom-color: rgb(var(--c-line));
+  color: rgb(var(--c-ink-soft));
+}
+
+.leaflet-bar a:hover {
+  background: rgb(var(--c-panel));
+  color: rgb(var(--c-ink));
+}
+
+/* ---------------- Tooltip ---------------- */
+
+.ip-tooltip {
+  background: rgb(var(--c-shell));
+  border: 1px solid rgb(var(--c-shell-3));
+  border-radius: 10px;
+  box-shadow: var(--ombra-pannello);
+  color: rgb(var(--c-ink-dim));
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 9px 11px;
+  white-space: nowrap;
+}
+
+.ip-tooltip::before {
+  display: none;
+}
+
+.ip-tooltip__title {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.ip-tooltip__prov {
+  color: rgb(var(--c-ink-dim));
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.ip-tooltip__row {
+  display: block;
+  color: rgb(var(--c-ink-dim));
+}
+
+.ip-tooltip__wrap {
+  max-width: 250px;
+  white-space: normal;
+}
+
+.ip-tooltip__value {
+  color: rgb(var(--c-mint-pale));
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------- Legenda ---------------- */
+
+.ip-legend {
+  background: rgb(var(--c-shell) / 0.95);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgb(var(--c-shell-3));
+  border-radius: 12px;
+  box-shadow: var(--ombra-pannello);
+  color: rgb(var(--c-ink-dim));
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 11px 13px;
+}
+
+.ip-legend__title {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.ip-legend__row {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ip-legend__swatch {
+  border-radius: 3px;
+  display: inline-block;
+  height: 12px;
+  width: 22px;
+}
+
+.ip-legend__note {
+  color: rgb(var(--c-ink-dim) / 0.85);
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid rgb(var(--c-shell-3));
+}

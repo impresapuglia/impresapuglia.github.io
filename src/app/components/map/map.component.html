@@ -1,0 +1,47 @@
+<div class="relative h-full w-full bg-canvas">
+  <!-- Contenitore Leaflet -->
+  <div #mapContainer class="h-full w-full" role="application"
+       aria-label="Mappa choropleth dei comuni pugliesi"></div>
+
+  <!-- Contatore comuni visibili -->
+  @if (!loading() && !error()) {
+    <div class="pointer-events-none absolute bottom-4 left-4 z-[500] hidden rounded-lg border border-shell-3 bg-shell/95 px-3 py-2 text-xs backdrop-blur-sm sm:block">
+      <span class="font-semibold tabular-nums text-mint-pale">{{ visibili() }}</span>
+      <span class="text-ink-dim"> comuni visualizzati</span>
+    </div>
+  }
+
+  <!-- Fonte dei confini -->
+  <p class="pointer-events-none absolute bottom-1 left-4 z-[500] hidden text-[10px] text-ink-soft sm:block">
+    Confini comunali ISTAT
+  </p>
+
+  <!-- Ritorno alla vista regionale -->
+  <button
+    type="button"
+    (click)="inquadraPuglia()"
+    class="absolute right-4 top-4 z-[500] rounded-lg border border-shell-3 bg-shell/95 px-3 py-2 text-xs font-medium text-ink-dim backdrop-blur-sm transition hover:border-mint hover:text-white focus:outline-none focus:ring-2 focus:ring-mint"
+  >
+    Inquadra la Puglia
+  </button>
+
+  <!-- Stato di caricamento -->
+  @if (loading()) {
+    <div class="absolute inset-0 z-[600] flex items-center justify-center bg-canvas">
+      <div class="flex flex-col items-center gap-3">
+        <div class="h-8 w-8 animate-spin rounded-full border-2 border-mint border-t-transparent"></div>
+        <p class="text-sm text-ink-dim">Caricamento dei dati comunali…</p>
+      </div>
+    </div>
+  }
+
+  <!-- Errore di caricamento -->
+  @if (error()) {
+    <div class="absolute inset-0 z-[600] flex items-center justify-center bg-canvas p-6">
+      <div class="max-w-md rounded-xl border border-down/50 bg-shell-2 p-5 text-center">
+        <p class="mb-1 font-semibold text-white">Dati non disponibili</p>
+        <p class="text-sm text-ink-dim">{{ error() }}</p>
+      </div>
+    </div>
+  }
+</div>

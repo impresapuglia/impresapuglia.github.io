@@ -1,0 +1,95 @@
+<div class="relative h-full overflow-y-auto bg-shell">
+  <!-- Sagoma della regione come filigrana -->
+  <svg
+    class="pointer-events-none absolute -right-24 top-1/2 hidden w-[46rem] -translate-y-1/2 text-mint opacity-[0.055] lg:block"
+    viewBox="0 0 100 100"
+    aria-hidden="true"
+  >
+    <path
+      d="M4.2,31 L5.1,33.7 L7.1,34.9 L9.3,36.6 L8.8,38.2 L8.9,41.3 L10.3,41.6 L12.6,41.5 L16.7,43.4 L17.5,42 L20.5,42.3 L24.1,41.3 L25.8,40.3 L27.7,41.3 L30.6,44.5 L29,47.2 L32,48.4 L35.1,48.5 L35.8,50 L36.2,51.4 L40.7,56.3 L43.5,54.3 L48,54.8 L49.8,56.1 L49.8,60.3 L49.2,62.1 L50.3,65.3 L53.8,67.5 L54.9,66.2 L57.3,64.2 L59.2,63.4 L61,63.3 L64.5,66.1 L65.4,68.4 L67,69.1 L68.3,70 L69.5,70.2 L70.6,70.8 L71.6,71.2 L74.5,71.3 L78.8,71.5 L81.3,71.8 L83,73.6 L85.4,77.9 L85.6,78.1 L85.8,83.4 L86.1,83.6 L86.7,84.7 L87.9,85.9 L90.8,87.9 L92.9,88.3 L93.5,88.7 L94.3,89.2 L95.8,89.8 L96.4,87.4 L96.4,87.1 L96.6,86.1 L96.4,85.9 L96.7,83.8 L96.9,83.2 L97.1,82.5 L97.6,81.4 L99,79.5 L100,78.4 L97.9,73 L95.9,70.3 L94,68.3 L89.5,64.5 L88.9,64.1 L88.2,63.4 L87.5,62.5 L86.6,61.8 L85.9,58.8 L79.9,56.3 L76.4,54.1 L71.9,52.4 L68.3,49.5 L64.7,46.3 L61.5,44.1 L58.4,42.5 L50,39.2 L47.4,38.3 L44.6,37 L42.6,36 L39.4,34.1 L35.1,32.1 L30.2,29.7 L27.3,27 L26.5,24.1 L27.7,21.7 L30.6,20.1 L34.1,17.1 L34.5,12.4 L32.1,10.7 L29.2,10.2 L27.6,10.6 L24.4,11.1 L22.1,11.3 L20,11.1 L18.6,10.9 L13.1,11.9 L10.5,11.2 L7.8,11.2 L5.3,10.9 L4.4,14.5 L4.8,17.6 L5,19.6 L4,20.5 L2.2,22.3 L0,23.8 L0.5,26.2 L2,27.6 L4.2,29.4 L4.2,31 Z"
+      fill="currentColor"
+    />
+  </svg>
+
+  <div class="relative mx-auto flex min-h-full max-w-3xl flex-col justify-center px-6 py-14 sm:py-20">
+    <app-logo class="block h-16 w-16 sm:h-20 sm:w-20" />
+
+    <h1 class="mt-7 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+      Impresa<span class="text-mint">Puglia</span>
+    </h1>
+
+    <p class="mt-3 text-lg leading-relaxed text-ink-dim sm:text-xl">
+      L'imprenditoria pugliese comune per comune: dove l'impresa è concentrata,
+      dove manca, e quali settori restano scoperti.
+    </p>
+
+    <p class="mt-4 max-w-xl text-sm leading-relaxed text-ink-dim/80">
+      Una mappa interattiva dei 257 comuni della regione, costruita sugli open
+      data della Regione Puglia e sui confini ISTAT.
+    </p>
+
+    <!-- Le due porte d'accesso -->
+    <div class="mt-9 flex flex-col gap-3 sm:flex-row">
+      <a
+        routerLink="/mappa"
+        class="group flex flex-1 items-center gap-4 rounded-2xl bg-brand px-5 py-4 text-left transition hover:bg-brand-2 focus:outline-none focus:ring-2 focus:ring-mint focus:ring-offset-2 focus:ring-offset-shell"
+      >
+        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15">
+          <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 4 3 6.5v13L9 17l6 3 6-2.5v-13L15 7 9 4Z" />
+            <path d="M9 4v13M15 7v13" />
+          </svg>
+        </span>
+        <span class="min-w-0">
+          <span class="block text-base font-semibold text-white">Esplora la mappa</span>
+          <span class="block text-xs text-white/70">Densità, imprese femminili e giovanili, filtri per provincia</span>
+        </span>
+      </a>
+
+      <a
+        routerLink="/guida"
+        class="group flex flex-1 items-center gap-4 rounded-2xl border border-shell-3 bg-shell-2 px-5 py-4 text-left transition hover:border-gold-2 focus:outline-none focus:ring-2 focus:ring-gold-2 focus:ring-offset-2 focus:ring-offset-shell"
+      >
+        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gold-2/15">
+          <svg class="h-5 w-5 text-gold-2" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 16v-4M12 8.5h.01" />
+          </svg>
+        </span>
+        <span class="min-w-0">
+          <span class="block text-base font-semibold text-white">Cos'è ImpresaPuglia</span>
+          <span class="block text-xs text-ink-dim">Come leggere i dati, come muoversi, da dove vengono i numeri</span>
+        </span>
+      </a>
+    </div>
+
+    <!-- Scala del dataset -->
+    @if (pronto()) {
+      <dl class="mt-10 grid grid-cols-3 gap-4 border-t border-shell-2 pt-7">
+        <div>
+          <dt class="text-[10px] font-semibold uppercase tracking-wider2 text-ink-dim">Comuni</dt>
+          <dd class="mt-1 text-2xl font-semibold tabular-nums text-white">{{ statistiche().comuni }}</dd>
+        </div>
+        <div>
+          <dt class="text-[10px] font-semibold uppercase tracking-wider2 text-ink-dim">Imprese</dt>
+          <dd class="mt-1 text-2xl font-semibold tabular-nums text-white">
+            {{ statistiche().totaleImprese | number: '1.0-0' }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-[10px] font-semibold uppercase tracking-wider2 text-ink-dim">Province</dt>
+          <dd class="mt-1 text-2xl font-semibold tabular-nums text-white">6</dd>
+        </div>
+      </dl>
+    }
+
+    <p class="mt-8 rounded-xl border border-gold-2/25 bg-gold-2/5 px-4 py-3 text-xs leading-relaxed text-gold-pale">
+      <strong class="font-semibold">Nota sui dati.</strong> I confini comunali sono reali (ISTAT).
+      I valori imprenditoriali attualmente visualizzati sono <strong class="font-semibold">dimostrativi</strong>:
+      plausibili nell'ordine di grandezza, ma non ufficiali. Il collegamento ai dataset
+      di dati.puglia.it è descritto nella guida.
+    </p>
+  </div>
+</div>

@@ -1,0 +1,47 @@
+<div class="relative h-full w-full bg-canvas">
+  <div #mapContainer class="h-full w-full" role="application"
+       aria-label="Mappa delle opportunità settoriali"></div>
+
+  <!-- Selettore settore -->
+  <div class="absolute right-4 top-4 z-[500] w-64 max-w-[calc(100%-2rem)] rounded-xl border border-shell-3 bg-shell/95 p-3.5 backdrop-blur-sm">
+    <label for="settore" class="mb-2 block text-[11px] font-semibold uppercase tracking-wider2 text-ink-dim">
+      Settore da analizzare
+    </label>
+    <select
+      id="settore"
+      [ngModel]="settore()"
+      (ngModelChange)="cambiaSettore($event)"
+      class="w-full rounded-lg border border-shell-3 bg-shell-2 px-3 py-2 text-sm text-white outline-none transition focus:border-gold-2 focus:ring-2 focus:ring-gold-2/30"
+    >
+      @for (s of settori; track s) {
+        <option [value]="s">{{ labels[s] }}</option>
+      }
+    </select>
+
+    @if (topOpportunita().length) {
+      <p class="mt-4 text-[11px] font-semibold uppercase tracking-wider2 text-ink-dim">
+        Gap più ampi
+      </p>
+      <ul class="mt-1.5 space-y-1">
+        @for (r of topOpportunita(); track r.comune.istat) {
+          <li class="flex items-baseline justify-between gap-2 text-xs">
+            <span class="truncate text-white/90">{{ r.comune.comune }}</span>
+            <span class="shrink-0 font-semibold tabular-nums text-gold-pale">
+              −{{ r.gap | number: '1.0-0' }}
+            </span>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  <p class="pointer-events-none absolute bottom-1 left-4 z-[500] hidden text-[10px] text-ink-soft sm:block">
+    Confini comunali ISTAT
+  </p>
+
+  @if (loading()) {
+    <div class="absolute inset-0 z-[600] flex items-center justify-center bg-canvas">
+      <div class="h-8 w-8 animate-spin rounded-full border-2 border-gold-2 border-t-transparent"></div>
+    </div>
+  }
+</div>

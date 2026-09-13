@@ -1,0 +1,424 @@
+<div class="h-full overflow-y-auto bg-panel">
+  <!-- Intestazione -->
+  <header class="border-b border-shell-2 bg-shell px-6 py-10">
+    <div class="mx-auto max-w-5xl">
+      <p class="text-[10px] font-semibold uppercase tracking-wider2 text-mint">Guida alla lettura</p>
+      <h1 class="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+        Cos'è ImpresaPuglia
+      </h1>
+      <p class="mt-3 max-w-2xl text-base leading-relaxed text-ink-dim">
+        Tutto quello che serve per leggere la mappa senza fraintenderla: cosa
+        misurano i colori, come funzionano i filtri, come si calcolano gli
+        indicatori e da quali dataset arrivano i numeri.
+      </p>
+    </div>
+  </header>
+
+  <div class="mx-auto flex max-w-5xl gap-10 px-6 py-10">
+    <!-- Indice -->
+    <nav class="sticky top-6 hidden h-fit w-52 shrink-0 xl:block" aria-label="Indice della guida">
+      <p class="mb-3 text-[10px] font-semibold uppercase tracking-wider2 text-ink-soft">In questa pagina</p>
+      <ul class="space-y-1.5 border-l border-line pl-4">
+        @for (s of sezioni; track s.id) {
+          <li>
+            <a [href]="'#' + s.id" class="block text-sm text-ink-soft transition hover:text-brand">
+              {{ s.titolo }}
+            </a>
+          </li>
+        }
+      </ul>
+    </nav>
+
+    <div class="min-w-0 flex-1 space-y-12">
+      <!-- ============ COS'È ============ -->
+      <section id="cos-e" class="scroll-mt-6">
+        <h2 class="text-xl font-semibold tracking-tight text-ink">Cos'è ImpresaPuglia</h2>
+        <p class="mt-3 leading-relaxed text-ink-soft">
+          ImpresaPuglia mette su mappa il tessuto imprenditoriale dei 257 comuni
+          pugliesi. Serve a rispondere a due domande che i dati aperti contengono
+          ma non rendono leggibili: <strong class="text-ink">dove l'impresa è concentrata</strong>
+          e <strong class="text-ink">dove invece manca</strong>.
+        </p>
+        <p class="mt-3 leading-relaxed text-ink-soft">
+          Non è un cruscotto per addetti ai lavori: è pensato per chi deve
+          decidere qualcosa — dove aprire un'attività, su quale territorio
+          concentrare una misura, quale settore è scoperto in una certa zona.
+        </p>
+      </section>
+
+      <!-- ============ MUOVERSI ============ -->
+      <section id="muoversi" class="scroll-mt-6">
+        <h2 class="text-xl font-semibold tracking-tight text-ink">Come muoversi</h2>
+        <p class="mt-3 leading-relaxed text-ink-soft">L'app ha due viste, raggiungibili dalla barra in alto.</p>
+
+        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          <div class="rounded-xl border border-line bg-card p-4">
+            <p class="text-sm font-semibold text-ink">Mappa</p>
+            <p class="mt-1.5 text-sm leading-relaxed text-ink-soft">
+              La vista principale. Ogni comune è colorato in base a quanta impresa
+              ospita. Passando il mouse compare un riepilogo, cliccando si apre il
+              pannello di dettaglio sulla destra.
+            </p>
+          </div>
+          <div class="rounded-xl border border-line bg-card p-4">
+            <p class="text-sm font-semibold text-ink">Opportunità</p>
+            <p class="mt-1.5 text-sm leading-relaxed text-ink-soft">
+              La stessa mappa letta al contrario: invece di mostrare dove c'è
+              impresa, mostra quanta ne manca in un settore specifico rispetto
+              alla media regionale.
+            </p>
+          </div>
+        </div>
+
+        <p class="mt-4 leading-relaxed text-ink-soft">
+          A sinistra c'è il pannello dei filtri, che agisce su entrambe le viste.
+          Su schermi stretti è a scomparsa: si apre con il pulsante in alto a
+          sinistra.
+        </p>
+      </section>
+
+      <!-- ============ MAPPA ============ -->
+      <section id="mappa" class="scroll-mt-6">
+        <h2 class="text-xl font-semibold tracking-tight text-ink">Come leggere la mappa</h2>
+
+        <h3 class="mt-5 text-sm font-semibold uppercase tracking-wider2 text-ink-soft">Cosa misura il colore</h3>
+        <p class="mt-2 leading-relaxed text-ink-soft">
+          Per impostazione predefinita il colore rappresenta la
+          <strong class="text-ink">densità imprenditoriale</strong>: quante imprese
+          sono registrate ogni 1.000 abitanti. È una misura di intensità, non di
+          dimensione — un paese di 3.000 abitanti con molte partite IVA può
+          risultare più "denso" di un capoluogo.
+        </p>
+        <p class="mt-3 leading-relaxed text-ink-soft">
+          Questo è anche il motivo per cui la mappa non premia automaticamente le
+          città grandi: se volete il volume assoluto, quello sta nel pannello di
+          dettaglio e nel riepilogo della sidebar.
+        </p>
+
+        <div class="mt-4 rounded-xl border border-line bg-card p-4">
+          <p class="mb-3 text-xs font-semibold uppercase tracking-wider2 text-ink-soft">
+            Scala densità — dal più basso al più alto
+          </p>
+          <div class="flex items-center gap-1">
+            @for (c of scalaDensita(); track c) {
+              <span class="h-7 flex-1 rounded" [style.background]="c"></span>
+            }
+          </div>
+          <div class="mt-2 flex justify-between text-[11px] text-ink-soft">
+            <span>meno impresa</span>
+            <span>più impresa</span>
+          </div>
+        </div>
+
+        <h3 class="mt-6 text-sm font-semibold uppercase tracking-wider2 text-ink-soft">
+          Le classi sono a quantili, non a intervalli
+        </h3>
+        <p class="mt-2 leading-relaxed text-ink-soft">
+          I sei colori non dividono l'intervallo dei valori in sei fette uguali:
+          dividono i <em>comuni</em> in gruppi di dimensione simile. Il colore di
+          un comune dipende dalla sua posizione in classifica, non dalla distanza
+          dal massimo.
+        </p>
+        <p class="mt-3 leading-relaxed text-ink-soft">
+          Il motivo è pratico: la densità si addensa attorno alla media, quindi con
+          classi a intervallo costante quasi tutti i comuni finirebbero nelle due
+          fasce centrali e la mappa uscirebbe di un solo colore. La legenda in
+          basso a destra mostra sempre i valori reali dei confini di classe.
+        </p>
+        <p class="mt-3 leading-relaxed text-ink-soft">
+          <strong class="text-ink">Conseguenza da tenere a mente:</strong> se
+          filtrate per provincia, la scala si ricalcola su quei comuni. Lo stesso
+          comune può quindi cambiare tonalità passando da "tutta la regione" a una
+          singola provincia. Non è un errore — è la scala che si adatta al
+          confronto che state facendo.
+        </p>
+
+        <h3 class="mt-6 text-sm font-semibold uppercase tracking-wider2 text-ink-soft">
+          Perché non si vede il resto d'Italia
+        </h3>
+        <p class="mt-2 leading-relaxed text-ink-soft">
+          La mappa non carica uno sfondo cartografico: disegna solo i confini
+          comunali su una tela piena. Niente etichette che competono con i dati,
+          niente territori fuori tema, e nessuna dipendenza da un fornitore di
+          mappe esterno.
+        </p>
+      </section>
+
+      <!-- ============ FILTRI ============ -->
+      <section id="filtri" class="scroll-mt-6">
+        <h2 class="text-xl font-semibold tracking-tight text-ink">I filtri</h2>
+        <dl class="mt-4 space-y-4">
+          <div class="rounded-xl border border-line bg-card p-4">
+            <dt class="text-sm font-semibold text-ink">Provincia</dt>
+            <dd class="mt-1.5 text-sm leading-relaxed text-ink-soft">
+              Restringe l'analisi a una delle sei province (BA, BAT, BR, FG, LE, TA).
+              I comuni fuori selezione restano disegnati ma spenti, così la forma
+              della regione non si buca.
+            </dd>
+          </div>
+          <div class="rounded-xl border border-line bg-card p-4">
+            <dt class="text-sm font-semibold text-ink">Solo imprese femminili / giovanili</dt>
+            <dd class="mt-1.5 text-sm leading-relaxed text-ink-soft">
+              Non nascondono nulla: <strong class="text-ink">cambiano cosa misura il colore</strong>.
+              Con uno dei due attivo la mappa non mostra più la densità ma la quota
+              percentuale di quel tipo di impresa sul totale comunale. I due
+              interruttori si escludono a vicenda, perché una scala di colori può
+              rappresentare una grandezza sola.
+            </dd>
+          </div>
+          <div class="rounded-xl border border-line bg-card p-4">
+            <dt class="text-sm font-semibold text-ink">Soglia minima imprese</dt>
+            <dd class="mt-1.5 text-sm leading-relaxed text-ink-soft">
+              Esclude dalla scala i comuni sotto un certo numero di imprese. Serve
+              a togliere rumore: su numeri piccoli una percentuale oscilla molto e
+              può creare falsi primati. I comuni esclusi restano visibili, spenti.
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- ============ PANNELLO COMUNE ============ -->
+      <section id="comune" class="scroll-mt-6">
+        <h2 class="text-xl font-semibold tracking-tight text-ink">Il pannello del comune</h2>
+        <p class="mt-3 leading-relaxed text-ink-soft">
+          Si apre cliccando un comune sulla mappa. Contiene cinque blocchi.
+        </p>
+
+        <ol class="mt-4 space-y-4">
+          <li class="rounded-xl border border-line bg-card p-4">
+            <p class="text-sm font-semibold text-ink">1 · I tre numeri in alto</p>
+            <p class="mt-1.5 text-sm leading-relaxed text-ink-soft">
+              Totale imprese registrate, quota femminile e quota giovanile, con il
+              valore assoluto sotto la percentuale.
+            </p>
+          </li>
+          <li class="rounded-xl border border-line bg-card p-4">
+            <p class="text-sm font-semibold text-ink">2 · Gli indicatori di scostamento</p>
+            <p class="mt-1.5 text-sm leading-relaxed text-ink-soft">
+              Le due etichette con freccia confrontano il comune con il resto della
+              regione: <span class="font-medium text-up">▲ verde</span> se è sopra
+              la media o in crescita, <span class="font-medium text-down">▼ rosso</span>
+              se è sotto o in calo. La prima riguarda la densità, la seconda la
+              variazione delle imprese nell'ultimo anno.
+            </p>
+          </li>
+          <li class="rounded-xl border border-line bg-card p-4">
+            <p class="text-sm font-semibold text-ink">3 · Imprese per settore</p>
+            <p class="mt-1.5 text-sm leading-relaxed text-ink-soft">
+              Barre ordinate dal settore più presidiato al meno presidiato, con il
+              numero di imprese in fondo a ciascuna. I settori sono sette:
+              agricoltura, manifatturiero, costruzioni, commercio, turismo e
+              ristorazione, servizi professionali, altro.
+            </p>
+          </li>
+          <li class="rounded-xl border border-line bg-card p-4">
+            <p class="text-sm font-semibold text-ink">4 · Andamento trimestrale</p>
+            <p class="mt-1.5 text-sm leading-relaxed text-ink-soft">
+              Otto trimestri, espressi come <strong class="text-ink">numero indice con base 100</strong>
+              al primo trimestre della serie. Un valore di 102 significa "+2%
+              rispetto al punto di partenza", non 102 imprese. Le due serie — totale
+              e femminili — sono su scale molto diverse in valore assoluto:
+              ribasandole a 100 diventano confrontabili nelle variazioni, che è la
+              cosa che interessa. Il valore assoluto compare nel tooltip.
+            </p>
+          </li>
+          <li class="rounded-xl border border-line bg-card p-4">
+            <p class="text-sm font-semibold text-ink">5 · Sintesi</p>
+            <p class="mt-1.5 text-sm leading-relaxed text-ink-soft">
+              Tre frasi — punto di forza, criticità, opportunità — generate
+              confrontando i valori del comune con le medie regionali. È un calcolo
+              deterministico fatto nel browser: nessun modello linguistico, nessuna
+              chiamata esterna, e lo stesso comune produce sempre lo stesso testo.
+            </p>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============ OPPORTUNITÀ ============ -->
+      <section id="opportunita" class="scroll-mt-6">
+        <h2 class="text-xl font-semibold tracking-tight text-ink">La mappa delle opportunità</h2>
+        <p class="mt-3 leading-relaxed text-ink-soft">
+          Si sceglie un settore dal menu in alto a destra e la mappa colora i
+          comuni in base a quante imprese di quel settore
+          <strong class="text-ink">mancano</strong> rispetto a quello che ci si
+          aspetterebbe.
+        </p>
+
+        <div class="mt-4 rounded-xl border-l-2 border-gold bg-card p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider2 text-gold-ink">Come si calcola</p>
+          <p class="mt-2 text-sm leading-relaxed text-ink-soft">
+            Si guarda quanto pesa mediamente quel settore sul totale delle imprese
+            nei comuni pugliesi. Quella quota media si applica al totale imprese del
+            comune: il risultato è il numero di imprese <em>attese</em>. Il gap è la
+            differenza fra attese e reali.
+          </p>
+          <p class="mt-2 font-mono text-xs text-ink">
+            gap = (quota media regionale del settore × totale imprese del comune) − imprese reali del settore
+          </p>
+          <p class="mt-2 text-sm leading-relaxed text-ink-soft">
+            Il confronto non è sul valore assoluto — così i capoluoghi
+            monopolizzerebbero la scala e il resto della regione resterebbe bianco.
+            Il colore usa la <strong class="text-ink">quota mancante</strong> (il gap
+            in rapporto alle attese), che è confrontabile fra comuni di dimensioni
+            diverse; il tooltip mostra comunque il numero assoluto di imprese
+            mancanti.
+          </p>
+        </div>
+
+        <div class="mt-4 rounded-xl border border-line bg-card p-4">
+          <p class="mb-3 text-xs font-semibold uppercase tracking-wider2 text-ink-soft">
+            Scala opportunità — dal minore al maggiore divario
+          </p>
+          <div class="flex items-center gap-1">
+            @for (c of scalaOpportunita(); track c) {
+              <span class="h-7 flex-1 rounded" [style.background]="c"></span>
+            }
+          </div>
+          <div class="mt-2 flex justify-between text-[11px] text-ink-soft">
+            <span>già sopra la media</span>
+            <span>ampio spazio libero</span>
+          </div>
+        </div>
+
+        <p class="mt-4 leading-relaxed text-ink-soft">
+          Un gap ampio segnala uno spazio non presidiato, non una garanzia di
+          successo: può esserci una ragione per cui quel settore non c'è. La mappa
+          dice dove guardare, non cosa fare.
+        </p>
+      </section>
+
+      <!-- ============ DATI ============ -->
+      <section id="dati" class="scroll-mt-6">
+        <h2 class="text-xl font-semibold tracking-tight text-ink">Da dove vengono i dati</h2>
+
+        <div class="mt-4 rounded-xl border border-gold/40 bg-gold/5 p-4">
+          <p class="text-sm font-semibold text-gold-ink">Stato attuale, senza giri di parole</p>
+          <p class="mt-2 text-sm leading-relaxed text-ink-soft">
+            I <strong class="text-ink">confini comunali sono reali</strong>: vengono
+            dal dataset ISTAT dei limiti amministrativi.
+            I <strong class="text-ink">valori imprenditoriali che vedete adesso non lo sono</strong>:
+            sono generati da uno script, con un seme fisso, in modo che gli ordini
+            di grandezza e le differenze territoriali siano plausibili. Servono a
+            sviluppare e presentare l'interfaccia mentre si completa il collegamento
+            ai dataset reali. Non vanno citati come dati ufficiali.
+          </p>
+        </div>
+
+        <h3 class="mt-6 text-sm font-semibold uppercase tracking-wider2 text-ink-soft">I dataset di origine</h3>
+        <div class="mt-3 space-y-3">
+          @for (f of fonti; track f.titolo) {
+            <div class="rounded-xl border border-line bg-card p-4">
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <p class="text-sm font-semibold text-ink">{{ f.titolo }}</p>
+                <span
+                  class="shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider2"
+                  [class]="f.stato === 'collegato' ? 'bg-up/10 text-up' : 'bg-gold/10 text-gold-ink'"
+                >
+                  {{ f.stato === 'collegato' ? 'collegato' : 'in collegamento' }}
+                </span>
+              </div>
+              <p class="mt-1 text-xs text-ink-soft">{{ f.ente }} · {{ f.copertura }}</p>
+              <p class="mt-2 text-sm leading-relaxed text-ink-soft">{{ f.usoNellApp }}</p>
+              <a
+                [href]="f.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="mt-2 inline-flex items-center gap-1 text-xs font-medium text-brand transition hover:text-brand-2"
+              >
+                Vai alla fonte
+                <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M7 17 17 7M9 7h8v8" />
+                </svg>
+              </a>
+            </div>
+          }
+        </div>
+
+        <h3 class="mt-6 text-sm font-semibold uppercase tracking-wider2 text-ink-soft">Come arrivano nell'app</h3>
+        <p class="mt-2 leading-relaxed text-ink-soft">
+          Il portale della Regione Puglia pubblica i dati come CSV e XLS sparsi su
+          decine di dataset, uno per provincia e per trimestre. Una pipeline in tre
+          passi li riporta a un formato unico:
+        </p>
+        <ol class="mt-3 space-y-2 text-sm leading-relaxed text-ink-soft">
+          <li class="flex gap-3">
+            <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-brand/10 font-mono text-[11px] font-semibold text-brand">1</span>
+            <span><strong class="text-ink">Scarico.</strong> Interroga l'API del portale per trovare i dataset e scarica le risorse in CSV o Excel.</span>
+          </li>
+          <li class="flex gap-3">
+            <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-brand/10 font-mono text-[11px] font-semibold text-brand">2</span>
+            <span><strong class="text-ink">Pulizia.</strong> Uniforma i nomi dei comuni (accenti, sigle provinciali fra parentesi, maiuscole), riconcilia ogni riga con il codice ISTAT ufficiale, mappa le descrizioni ATECO sui sette settori e imputa i valori mancanti con la media provinciale.</span>
+          </li>
+          <li class="flex gap-3">
+            <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-brand/10 font-mono text-[11px] font-semibold text-brand">3</span>
+            <span><strong class="text-ink">Aggregazione.</strong> Somma per comune, calcola percentuali, densità e serie trimestrale, e produce il file che l'app carica.</span>
+          </li>
+        </ol>
+        <p class="mt-3 leading-relaxed text-ink-soft">
+          L'incastro fra confini e dati avviene sul <strong class="text-ink">codice ISTAT</strong>,
+          mai sul nome: i nomi dei comuni hanno accenti, apostrofi e varianti di
+          grafia, il codice a sei cifre no.
+        </p>
+      </section>
+
+      <!-- ============ LIMITI ============ -->
+      <section id="limiti" class="scroll-mt-6">
+        <h2 class="text-xl font-semibold tracking-tight text-ink">Limiti da conoscere</h2>
+        <ul class="mt-4 space-y-3">
+          <li class="flex gap-3 rounded-xl border border-line bg-card p-4">
+            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-down"></span>
+            <p class="text-sm leading-relaxed text-ink-soft">
+              <strong class="text-ink">I numeri attuali sono dimostrativi.</strong>
+              Finché la pipeline non è collegata, ogni valore imprenditoriale in
+              questa app è sintetico.
+            </p>
+          </li>
+          <li class="flex gap-3 rounded-xl border border-line bg-card p-4">
+            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gold"></span>
+            <p class="text-sm leading-relaxed text-ink-soft">
+              <strong class="text-ink">Copertura disomogenea sui dati reali.</strong>
+              Le serie comunali su imprese femminili e giovanili sono pubblicate per
+              provincia e per trimestre, e la copertura più ricca è quella della
+              Camera di Commercio di Lecce. Al momento del collegamento alcune
+              province avranno meno storico.
+            </p>
+          </li>
+          <li class="flex gap-3 rounded-xl border border-line bg-card p-4">
+            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gold"></span>
+            <p class="text-sm leading-relaxed text-ink-soft">
+              <strong class="text-ink">Imprese registrate ≠ imprese attive.</strong>
+              Il dato principale conta le imprese iscritte al registro, che includono
+              posizioni inattive. Dove disponibile, il dataset su imprese attive e
+              addetti permette la distinzione.
+            </p>
+          </li>
+          <li class="flex gap-3 rounded-xl border border-line bg-card p-4">
+            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gold"></span>
+            <p class="text-sm leading-relaxed text-ink-soft">
+              <strong class="text-ink">La sede legale non è il luogo dell'attività.</strong>
+              Un'impresa registrata in un comune può operare altrove: è il limite di
+              qualunque analisi basata sul registro delle imprese.
+            </p>
+          </li>
+        </ul>
+      </section>
+
+      <!-- CTA -->
+      <div class="rounded-2xl border border-line bg-card p-6 text-center">
+        <p class="text-base font-semibold text-ink">Pronto a guardare i dati?</p>
+        <p class="mt-1.5 text-sm text-ink-soft">Parti dalla mappa e clicca un comune qualsiasi.</p>
+        <a
+          routerLink="/mappa"
+          class="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-2 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
+        >
+          Esplora la mappa
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,43 @@
+@if (aperto) {
+  <section
+    class="w-[20rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-line bg-card shadow-panel"
+    aria-label="Assistente ImpresaPuglia"
+  >
+    <header class="flex items-center gap-2 bg-shell px-4 py-3 text-white">
+      <p class="min-w-0 flex-1 truncate text-sm font-semibold">Assistente ImpresaPuglia</p>
+      <button
+        type="button"
+        (click)="chiudi.emit()"
+        aria-label="Chiudi"
+        class="rounded-md p-1 text-ink-dim transition hover:bg-shell-2 hover:text-white focus:outline-none focus:ring-2 focus:ring-mint"
+      >
+        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+        </svg>
+      </button>
+    </header>
+
+    <div class="flex flex-col items-center gap-3 px-6 py-8 text-center">
+      <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface">
+        <svg
+          class="h-6 w-6 text-brand"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 2" />
+        </svg>
+      </span>
+      <p class="text-base font-semibold text-ink">L'AI arriverà presto</p>
+      <p class="text-sm leading-relaxed text-ink-soft">
+        L'assistente conversazionale sui dati pugliesi è in lavorazione.
+        Nel frattempo puoi esplorare la mappa e aprire il dettaglio di ogni comune.
+      </p>
+    </div>
+  </section>
+}
