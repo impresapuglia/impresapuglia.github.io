@@ -30,11 +30,11 @@ jobs:
       - run: npx ng build --base-href /
 
       - name: Create 404.html for SPA routing
-        run: cp dist/impresapuglia/browser/index.html dist/impresapuglia/browser/404.html
+        run: cp dist/impresa-puglia/browser/index.html dist/impresa-puglia/browser/404.html
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/impresapuglia/browser
+          path: dist/impresa-puglia/browser
 
   deploy:
     needs: build
