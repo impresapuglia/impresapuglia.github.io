@@ -67,7 +67,13 @@ export class OpportunityMapComponent implements AfterViewInit, OnDestroy {
   private legenda?: L.Control;
   private filtri: FilterState = { ...FILTRI_INIZIALI };
   private colori = new Map<string, string>();
-  private primoDisegno = true;
+  /**
+   * Vero solo quando l'inquadratura e stata calcolata sui confini reali E con
+   * il contenitore gia dimensionato: finche resta falso si riprova a ogni
+   * ridisegno e a ogni cambio di dimensione.
+   */
+  private inquadrata = false;
+  private osservatore?: ResizeObserver;
 
   constructor() {
     effect(() => {
@@ -99,11 +105,43 @@ export class OpportunityMapComponent implements AfterViewInit, OnDestroy {
       wheelPxPerZoomLevel: 120,
     });
     this.mappa.fitBounds(PUGLIA_BOUNDS, { padding: [10, 10] });
+    this.osservaDimensioni();
     if (this.data.pronto()) this.disegna();
   }
 
   ngOnDestroy(): void {
+    this.osservatore?.disconnect();
     this.mappa?.remove();
+  }
+
+  /**
+   * Stesso problema di MapComponent: Leaflet misura il contenitore solo alla
+   * creazione. Se in quel momento il riquadro e ancora a zero — lazy loading
+   * del chunk, CSS in differita, scheda in secondo piano — la mappa resta
+   * vuota in silenzio. L'osservatore rimisura appena il riquadro esiste.
+   */
+  private osservaDimensioni(): void {
+    this.osservatore = new ResizeObserver(() => {
+      if (!this.mappa || !this.dimensionato) return;
+      this.mappa.invalidateSize({ animate: false });
+      this.inquadraSeServe();
+    });
+    this.osservatore.observe(this.mapContainer.nativeElement);
+  }
+
+  /** True se il riquadro della mappa occupa spazio sullo schermo. */
+  private get dimensionato(): boolean {
+    const el = this.mapContainer.nativeElement;
+    return el.clientWidth > 0 && el.clientHeight > 0;
+  }
+
+  /** Reinquadra finche non c'e riuscita davvero: confini reali, riquadro reale. */
+  private inquadraSeServe(): void {
+    if (!this.mappa || this.inquadrata || !this.dimensionato) return;
+    const bounds = this.layer?.getBounds();
+    if (!bounds || !bounds.isValid()) return;
+    this.mappa.fitBounds(bounds, { padding: [16, 16] });
+    this.inquadrata = true;
   }
 
   cambiaSettore(valore: string): void {
@@ -213,11 +251,7 @@ export class OpportunityMapComponent implements AfterViewInit, OnDestroy {
       },
     }).addTo(this.mappa);
 
-    if (this.primoDisegno) {
-      this.primoDisegno = false;
-      const bounds = this.layer.getBounds();
-      if (bounds.isValid()) this.mappa.fitBounds(bounds, { padding: [16, 16] });
-    }
+    this.inquadraSeServe();
 
     this.aggiornaLegenda(maxRel);
 
@@ -239,6 +273,7 @@ export class OpportunityMapComponent implements AfterViewInit, OnDestroy {
       this.mapService.etichetteScala(0, maxRel * 100, '%'),
       this.mapService.scalaOpportunita(),
       'Imprese mancanti sul totale atteso',
+      `0,0 – ${(maxRel * 100).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
     );
     this.legenda.addTo(this.mappa);
   }

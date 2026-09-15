@@ -5,12 +5,51 @@
     (comuneSelezionato)="onComuneSelezionato($event)"
   />
 
-  <!-- Pannello dettaglio: scivola da destra -->
+  <!-- Riepilogo nello spazio che la sagoma della Puglia lascia libero in alto.
+       Solo sotto lg: da lg in su gli stessi numeri sono nella sidebar. -->
+  @if (!comune()) {
+    <app-riepilogo class="pointer-events-none absolute left-3 right-3 top-3 z-[500] block lg:hidden" />
+  }
+
+  <!-- Sfondo che chiude il foglio: su telefono la striscia di mappa che resta
+       sopra il foglio e troppo bassa per essere usata, ma toccarla per chiudere
+       e il gesto che ci si aspetta. -->
+  @if (comune()) {
+    <button
+      type="button"
+      (click)="chiudiPannello()"
+      aria-label="Chiudi il dettaglio del comune"
+      class="absolute inset-0 z-[650] bg-ink/40 lg:hidden"
+    ></button>
+  }
+
+  <!-- Dettaglio comune: foglio dal basso su mobile, pannello laterale da lg.
+       Su 393px un pannello da 384px coprirebbe comunque tutto lo schermo,
+       quindi tanto vale usare il gesto che su telefono ci si aspetta — e
+       lasciare visibile la striscia di mappa sopra il foglio. -->
   <div
-    class="absolute inset-y-0 right-0 z-[700] w-96 max-w-full transform border-l border-line bg-card shadow-panel transition-transform duration-300 ease-out"
-    [class]="comune() ? 'translate-x-0' : 'translate-x-full'"
+    class="absolute inset-x-0 bottom-0 z-[700] flex h-[78dvh] transform flex-col overflow-hidden rounded-t-2xl border-t border-line bg-shell shadow-panel transition-transform duration-300 ease-out
+           lg:inset-y-0 lg:left-auto lg:right-0 lg:h-auto lg:w-panel lg:max-w-full lg:rounded-none lg:border-l lg:border-t-0 lg:bg-card"
+    [ngClass]="
+      comune()
+        ? 'translate-y-0 lg:translate-x-0'
+        : 'translate-y-full lg:translate-y-0 lg:translate-x-full'
+    "
     [attr.aria-hidden]="!comune()"
   >
-    <app-comune-panel [comune]="comune()" (chiudi)="chiudiPannello()" />
+    <!-- Maniglia: segnala che il foglio si chiude trascinandolo o toccandola. -->
+    <button
+      type="button"
+      (click)="chiudiPannello()"
+      aria-label="Chiudi il dettaglio del comune"
+      class="shrink-0 bg-shell py-2.5 lg:hidden"
+      [attr.tabindex]="comune() ? 0 : -1"
+    >
+      <span class="mx-auto block h-1 w-10 rounded-full bg-white/30"></span>
+    </button>
+
+    <div class="min-h-0 flex-1">
+      <app-comune-panel [comune]="comune()" (chiudi)="chiudiPannello()" />
+    </div>
   </div>
 </div>

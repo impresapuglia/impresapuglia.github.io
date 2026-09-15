@@ -66,8 +66,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private filtri: FilterState = { ...FILTRI_INIZIALI };
   /** Colore corrente di ogni comune, per ripristinarlo dopo l'hover. */
   private colori = new Map<string, string>();
-  /** Il primo disegno inquadra i confini reali; poi si rispetta lo zoom utente. */
-  private primoDisegno = true;
+  /**
+   * Vero solo quando l'inquadratura e stata calcolata sui confini reali E con
+   * il contenitore gia dimensionato. Finche resta falso ogni ridisegno e ogni
+   * cambio di dimensione riprovano; una volta vero, si rispetta lo zoom scelto
+   * dall'utente e non si reinquadra piu da soli.
+   */
+  private inquadrata = false;
+  private osservatore?: ResizeObserver;
 
   /** Numero di comuni visibili con i filtri correnti. */
   readonly visibili = signal(0);
@@ -113,22 +119,66 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     });
 
     this.mappa.fitBounds(PUGLIA_BOUNDS, { padding: [10, 10] });
+    this.osservaDimensioni();
 
     if (this.data.pronto()) this.disegna();
   }
 
   ngOnDestroy(): void {
+    this.osservatore?.disconnect();
     this.mappa?.remove();
   }
 
-  /** Riporta la vista sull'intera regione (sui confini reali, se disponibili). */
+  /**
+   * Leaflet misura il contenitore una volta sola, alla creazione, e non se ne
+   * riaccorge piu da solo. Se in quel momento il riquadro e ancora a zero — il
+   * chunk della mappa arriva in lazy loading, il CSS si applica in differita, la
+   * scheda del browser e in secondo piano — la mappa resta vuota per sempre pur
+   * avendo caricato tutti i dati, e non c'e nessun errore in console a dirlo.
+   *
+   * L'osservatore rende la cosa deterministica: appena il contenitore ha una
+   * dimensione reale si rimisura, e se l'inquadratura precedente era stata
+   * calcolata a vuoto la si rifa. Serve anche quando il riquadro cambia
+   * larghezza in corsa, per esempio aprendo la sidebar dei filtri su mobile.
+   */
+  private osservaDimensioni(): void {
+    this.osservatore = new ResizeObserver(() => {
+      if (!this.mappa || !this.dimensionato) return;
+      this.mappa.invalidateSize({ animate: false });
+      this.inquadraSeServe();
+    });
+    this.osservatore.observe(this.mapContainer.nativeElement);
+  }
+
+  /** True se il riquadro della mappa occupa spazio sullo schermo. */
+  private get dimensionato(): boolean {
+    const el = this.mapContainer.nativeElement;
+    return el.clientWidth > 0 && el.clientHeight > 0;
+  }
+
+  /**
+   * Inquadra la regione. Restituisce true se ha potuto usare i confini reali
+   * dei comuni invece del rettangolo di ripiego.
+   */
+  private fit(): boolean {
+    if (!this.mappa) return false;
+    const bounds = this.layerComuni?.getBounds();
+    const reali = !!bounds && bounds.isValid();
+    this.mappa.fitBounds(reali ? bounds : PUGLIA_BOUNDS, { padding: [16, 16] });
+    return reali;
+  }
+
+  /** Reinquadra finche non c'e riuscita davvero: confini reali, riquadro reale. */
+  private inquadraSeServe(): void {
+    if (this.inquadrata || !this.dimensionato) return;
+    this.inquadrata = this.fit();
+  }
+
+  /** Bottone "Inquadra la Puglia": rimisura e reinquadra, sempre. */
   inquadraPuglia(): void {
     if (!this.mappa) return;
-    const bounds = this.layerComuni?.getBounds();
-    this.mappa.fitBounds(
-      bounds && bounds.isValid() ? bounds : PUGLIA_BOUNDS,
-      { padding: [16, 16] },
-    );
+    this.mappa.invalidateSize({ animate: false });
+    this.fit();
   }
 
   // -----------------------------------------------------------------
@@ -202,10 +252,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       },
     }).addTo(this.mappa);
 
-    if (this.primoDisegno) {
-      this.primoDisegno = false;
-      this.inquadraPuglia();
-    }
+    this.inquadraSeServe();
 
     this.aggiornaLegenda(metrica, ordinati);
     this.evidenziaSelezione();
@@ -242,6 +289,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.mapService.etichetteQuantili(ordinati, cfg.suffisso),
       this.mapService.scalaDensita(),
       'Classi a quantili · clicca un comune',
+      this.mapService.sintesiScala(ordinati, cfg.suffisso),
     );
     this.legenda.addTo(this.mappa);
   }

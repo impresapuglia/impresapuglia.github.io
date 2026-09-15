@@ -321,13 +321,20 @@ export class MapService {
 
   /**
    * Crea il controllo legenda in basso a destra.
+   *
    * `etichette` deve contenere sei voci, una per classe della scala.
+   * `sintesi` e la riga che si vede su telefono a legenda chiusa (tipicamente
+   * "40,6 - 235,3"): sotto lg le sei righe occupavano 195px di altezza, il 18%
+   * dell'area mappa, appoggiate proprio dove passa la barra di Safari. Qui la
+   * legenda parte chiusa e si apre al tocco; da lg in su resta sempre aperta e
+   * il bottone non fa nulla.
    */
   creaLegenda(
     titolo: string,
     etichette: string[],
     scala: readonly string[],
     nota?: string,
+    sintesi?: string,
   ): L.Control {
     const control = new L.Control({ position: 'bottomright' });
     control.onAdd = () => {
@@ -339,13 +346,42 @@ export class MapService {
         )
         .reverse()
         .join('');
+
       div.innerHTML =
-        `<div class="ip-legend__title">${this.escape(titolo)}</div>${righe}` +
-        (nota ? `<div class="ip-legend__note">${this.escape(nota)}</div>` : '');
+        `<button type="button" class="ip-legend__toggle" aria-expanded="false">` +
+        `<span class="ip-legend__intestazione">` +
+        `<span class="ip-legend__title">${this.escape(titolo)}</span>` +
+        (sintesi
+          ? `<span class="ip-legend__sintesi">${this.escape(sintesi)}</span>`
+          : '') +
+        `</span>` +
+        `<span class="ip-legend__chevron" aria-hidden="true"></span>` +
+        `</button>` +
+        `<div class="ip-legend__corpo">${righe}` +
+        (nota ? `<div class="ip-legend__note">${this.escape(nota)}</div>` : '') +
+        `</div>`;
+
+      const bottone = div.querySelector('.ip-legend__toggle');
+      if (bottone) {
+        L.DomEvent.on(bottone as HTMLElement, 'click', () => {
+          const aperta = div.getAttribute('data-aperta') === 'true';
+          div.setAttribute('data-aperta', String(!aperta));
+          bottone.setAttribute('aria-expanded', String(!aperta));
+        });
+      }
+
       L.DomEvent.disableClickPropagation(div);
       return div;
     };
     return control;
+  }
+
+  /** "40,6 – 235,3": gli estremi della distribuzione, per la legenda chiusa. */
+  sintesiScala(ordinati: number[], suffisso = ''): string {
+    if (ordinati.length === 0) return '';
+    const min = ordinati[0];
+    const max = ordinati[ordinati.length - 1];
+    return `${NF1.format(min)} – ${NF1.format(max)}${suffisso}`;
   }
 
   /** Etichette delle sei classi a partire dal min/max reale della metrica. */

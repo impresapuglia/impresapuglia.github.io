@@ -30,6 +30,27 @@
     </nav>
 
     <div class="min-w-0 flex-1 space-y-12">
+      <!-- Indice per telefono e tablet: la colonna laterale esiste solo da xl
+           in su, e questa pagina e lunga dieci sezioni. Un <details> fa il
+           lavoro senza JavaScript e resta accessibile da tastiera. -->
+      <details class="rounded-xl border border-line bg-card px-4 py-3 xl:hidden">
+        <summary class="cursor-pointer list-none text-sm font-semibold text-ink marker:content-['']">
+          <span class="flex items-center justify-between gap-3">
+            In questa pagina
+            <span class="text-xs font-normal text-ink-soft">{{ sezioni.length }} sezioni</span>
+          </span>
+        </summary>
+        <ul class="mt-3 space-y-2 border-t border-line pt-3">
+          @for (s of sezioni; track s.id) {
+            <li>
+              <a [href]="'#' + s.id" class="block py-1 text-sm text-ink-soft transition hover:text-brand">
+                {{ s.titolo }}
+              </a>
+            </li>
+          }
+        </ul>
+      </details>
+
       <!-- ============ COS'È ============ -->
       <section id="cos-e" class="scroll-mt-6">
         <h2 class="text-xl font-semibold tracking-tight text-ink">Cos'è ImpresaPuglia</h2>
