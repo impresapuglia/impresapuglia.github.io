@@ -116,6 +116,50 @@ body {
   margin-right: 4.5rem;
 }
 
+/* Su iPhone la barra URL di Safari e l'indicatore home stanno sotto il
+   contenuto: senza questo margine la legenda ci finisce dietro. */
+.leaflet-bottom {
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Stessa ragione per il bottone flottante dell'assistente. */
+.sotto-sicuro {
+  bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Sotto lg la card di riepilogo occupa la fascia in alto: i controlli di
+   zoom e il bottone "Inquadra la Puglia" scendono sotto di essa. */
+@media (max-width: 1023px) {
+  .leaflet-top {
+    margin-top: 6.25rem;
+  }
+
+  /* I comandi di zoom sono link da 30px: sotto il minimo raccomandato per un
+     tocco. Su telefono valgono 40px. */
+  .leaflet-touch .leaflet-bar a,
+  .leaflet-bar a {
+    height: 40px;
+    line-height: 40px;
+    width: 40px;
+  }
+
+  /* La legenda nasce in basso a destra, dove su telefono ci sono gia il
+     bottone dell'assistente e il pollice: la si sposta a sinistra. Leaflet
+     decide la posizione alla creazione del controllo, quindi l'unico modo
+     per renderla responsive e ribaltare l'ancoraggio in CSS. */
+  .leaflet-bottom.leaflet-right {
+    left: 0;
+    right: auto;
+    margin-right: 0;
+  }
+
+  /* Ribaltando l'ancoraggio il margine di Leaflet resta sul lato sbagliato. */
+  .leaflet-bottom.leaflet-right .leaflet-control {
+    margin-left: 12px;
+    margin-right: 0;
+  }
+}
+
 .leaflet-touch .leaflet-bar,
 .leaflet-bar {
   border: none;
@@ -132,6 +176,15 @@ body {
 .leaflet-bar a:hover {
   background: rgb(var(--c-panel));
   color: rgb(var(--c-ink));
+}
+
+/* Al minimo zoom Leaflet disabilita il "-": senza stile sembrava un bottone
+   rotto invece che un bottone spento. */
+.leaflet-bar a.leaflet-disabled,
+.leaflet-bar a.leaflet-disabled:hover {
+  background: rgb(var(--c-card) / 0.55);
+  color: rgb(var(--c-ink-soft) / 0.45);
+  cursor: default;
 }
 
 /* ---------------- Tooltip ---------------- */
@@ -194,16 +247,56 @@ body {
   color: rgb(var(--c-ink-dim));
   font-size: 11px;
   line-height: 1.5;
+  max-width: calc(100vw - 1.5rem);
   padding: 11px 13px;
+}
+
+/* Il bottone e tutta l'intestazione: su telefono apre e chiude, da lg in su
+   non fa nulla di visibile perche il corpo resta sempre aperto. */
+.ip-legend__toggle {
+  align-items: center;
+  appearance: none;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: default;
+  display: flex;
+  font: inherit;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 0;
+  text-align: left;
+  width: 100%;
 }
 
 .ip-legend__title {
   color: #ffffff;
+  display: block;
   font-weight: 600;
   font-size: 11px;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   margin-bottom: 8px;
+}
+
+/* Gli estremi della scala: l'unica riga che resta visibile a chip chiusa. */
+.ip-legend__sintesi {
+  display: none;
+  color: rgb(var(--c-mint-pale));
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.ip-legend__chevron {
+  display: none;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  height: 7px;
+  width: 7px;
+  flex: none;
+  transform: rotate(-45deg);
+  transition: transform 0.2s ease;
 }
 
 .ip-legend__row {
@@ -226,4 +319,52 @@ body {
   margin-top: 8px;
   padding-top: 7px;
   border-top: 1px solid rgb(var(--c-shell-3));
+}
+
+/* Sotto lg: sei righe costavano 195px di altezza, il 18% dell'area mappa,
+   proprio dove passa la barra di Safari. La legenda parte chiusa. */
+@media (max-width: 1023px) {
+  /* Lascia libero l'angolo del bottone flottante: sulla mappa opportunita il
+     titolo e lungo e senza questo limite la legenda ci finiva sotto. */
+  .ip-legend {
+    max-width: calc(100vw - 6.5rem);
+    padding: 9px 12px;
+  }
+
+  .ip-legend__toggle {
+    cursor: pointer;
+    min-height: 30px;
+  }
+
+  .ip-legend__title {
+    font-size: 10px;
+    margin-bottom: 2px;
+  }
+
+  .ip-legend__sintesi {
+    display: block;
+  }
+
+  .ip-legend__chevron {
+    display: block;
+  }
+
+  .ip-legend__corpo {
+    display: none;
+  }
+
+  .ip-legend[data-aperta='true'] .ip-legend__corpo {
+    display: block;
+    margin-top: 9px;
+    padding-top: 8px;
+    border-top: 1px solid rgb(var(--c-shell-3));
+  }
+
+  .ip-legend[data-aperta='true'] .ip-legend__sintesi {
+    display: none;
+  }
+
+  .ip-legend[data-aperta='true'] .ip-legend__chevron {
+    transform: rotate(-135deg);
+  }
 }

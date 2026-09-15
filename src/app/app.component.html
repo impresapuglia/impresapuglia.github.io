@@ -1,4 +1,4 @@
-<div class="flex h-screen flex-col bg-surface">
+<div class="flex h-dvh flex-col bg-surface">
   <!-- ============ NAVBAR ============ -->
   <header class="z-[900] flex h-16 shrink-0 items-center gap-3 border-b border-shell-2 bg-shell px-4 text-white">
     @if (vistaMappa()) {
@@ -6,7 +6,7 @@
         type="button"
         (click)="toggleSidebar()"
         aria-label="Apri i filtri"
-        class="rounded-lg p-2 text-ink-dim transition hover:bg-shell-2 hover:text-white lg:hidden"
+        class="rounded-lg p-2.5 text-ink-dim transition hover:bg-shell-2 hover:text-white sm:p-2 lg:hidden"
       >
         <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
           <path d="M2 5.75A.75.75 0 0 1 2.75 5h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 5.75Zm0 4.25a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 10Zm0 4.25a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z" />
@@ -14,40 +14,58 @@
       </button>
     }
 
-    <a routerLink="/" class="flex min-w-0 items-center gap-3 rounded-lg transition hover:opacity-90">
-      <app-logo class="block h-10 w-10 shrink-0" />
-      <div class="min-w-0">
+    <a routerLink="/" class="flex min-w-0 items-center gap-2.5 rounded-lg transition hover:opacity-90">
+      <app-logo class="block h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
+      <!-- Sotto sm il titolo verrebbe troncato a due lettere: meglio togliere
+           il testo e lasciare che sia la tessera del marchio a firmare. -->
+      <div class="hidden min-w-0 sm:block">
         <h1 class="truncate text-[15px] font-semibold leading-tight tracking-tight">
           Impresa<span class="text-mint">Puglia</span>
         </h1>
-        <p class="hidden truncate text-[10px] uppercase tracking-wider2 text-ink-dim sm:block">
+        <p class="hidden truncate text-[10px] uppercase tracking-wider2 text-ink-dim md:block">
           L'imprenditoria pugliese sulla mappa
         </p>
       </div>
     </a>
 
     <nav class="ml-auto flex items-center gap-1" aria-label="Navigazione">
+      <!-- Sotto sm l'etichetta resta solo sulla vista attiva: due parole per
+           due schede costavano 173px, il 44% della barra su un telefono. -->
       <div class="flex items-center gap-1 rounded-xl bg-shell-2 p-1">
         <a
           routerLink="/mappa"
           routerLinkActive="bg-shell-3 text-white"
-          class="rounded-lg px-3 py-1.5 text-xs font-medium text-ink-dim transition hover:text-white sm:text-sm"
+          #vistaMappaLink="routerLinkActive"
+          aria-label="Mappa"
+          class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink-dim transition hover:text-white sm:px-3 sm:text-sm"
         >
-          Mappa
+          <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 4 3 6.5v13L9 17l6 3 6-2.5v-13L15 7 9 4Z" />
+            <path d="M9 4v13M15 7v13" />
+          </svg>
+          <span [class]="vistaMappaLink.isActive ? 'inline' : 'hidden sm:inline'">Mappa</span>
         </a>
         <a
           routerLink="/opportunita"
           routerLinkActive="bg-shell-3 text-white"
-          class="rounded-lg px-3 py-1.5 text-xs font-medium text-ink-dim transition hover:text-white sm:text-sm"
+          #vistaOppLink="routerLinkActive"
+          aria-label="Mappa delle opportunità"
+          class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink-dim transition hover:text-white sm:px-3 sm:text-sm"
         >
-          Opportunità
+          <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="8.5" />
+            <circle cx="12" cy="12" r="3.5" />
+          </svg>
+          <span [class]="vistaOppLink.isActive ? 'inline' : 'hidden sm:inline'">Opportunità</span>
         </a>
       </div>
       <a
         routerLink="/guida"
         routerLinkActive="text-gold-2"
         aria-label="Guida alla lettura"
-        class="ml-1 rounded-lg p-2 text-ink-dim transition hover:bg-shell-2 hover:text-white"
+        class="ml-1 rounded-lg p-2.5 text-ink-dim transition hover:bg-shell-2 hover:text-white sm:p-2"
       >
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -61,7 +79,7 @@
         (click)="tema.alterna()"
         [attr.aria-label]="tema.tema() === 'scuro' ? 'Passa al tema chiaro' : 'Passa al tema scuro'"
         [attr.aria-pressed]="tema.tema() === 'scuro'"
-        class="rounded-lg p-2 text-ink-dim transition hover:bg-shell-2 hover:text-white"
+        class="rounded-lg p-2.5 text-ink-dim transition hover:bg-shell-2 hover:text-white sm:p-2"
       >
         @if (tema.tema() === 'scuro') {
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -111,8 +129,11 @@
   @if (vistaMappa()) {
     <!-- Scansa il pannello di dettaglio quando è aperto, invece di coprirlo. -->
     <div
-      class="fixed bottom-5 right-5 z-[1000] flex flex-col items-end gap-3 transition-[right] duration-300"
-      [ngClass]="ui.comuneSelezionato() ? 'lg:right-panel' : ''"
+      class="fixed right-5 z-[1000] flex flex-col items-end gap-3 transition-[right] duration-300 sotto-sicuro"
+      [ngClass]="[
+        ui.comuneSelezionato() ? 'lg:right-panel' : '',
+        ui.comuneSelezionato() ? 'hidden lg:flex' : 'flex'
+      ]"
     >
       <app-chatbot [aperto]="ui.chatAperta()" (chiudi)="ui.chiudiChat()" />
 

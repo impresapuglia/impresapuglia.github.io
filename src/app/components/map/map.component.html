@@ -17,12 +17,20 @@
   </p>
 
   <!-- Ritorno alla vista regionale -->
+  <!-- Sotto lg l'etichetta lascia il posto all'icona: la fascia in alto e
+       occupata dalla card di riepilogo, e questo bottone scende sotto di essa
+       insieme ai controlli di zoom. -->
   <button
     type="button"
     (click)="inquadraPuglia()"
-    class="absolute right-4 top-4 z-[500] rounded-lg border border-shell-3 bg-shell/95 px-3 py-2 text-xs font-medium text-ink-dim backdrop-blur-sm transition hover:border-mint hover:text-white focus:outline-none focus:ring-2 focus:ring-mint"
+    aria-label="Inquadra la Puglia"
+    class="absolute right-3 top-[6.25rem] z-[500] flex h-11 w-11 items-center justify-center rounded-lg border border-shell-3 bg-shell/95 text-ink-dim backdrop-blur-sm transition hover:border-mint hover:text-white focus:outline-none focus:ring-2 focus:ring-mint lg:right-4 lg:top-4 lg:h-auto lg:w-auto lg:px-3 lg:py-2 lg:text-xs lg:font-medium"
   >
-    Inquadra la Puglia
+    <svg class="h-5 w-5 lg:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15" />
+    </svg>
+    <span class="hidden lg:inline">Inquadra la Puglia</span>
   </button>
 
   <!-- Stato di caricamento -->
