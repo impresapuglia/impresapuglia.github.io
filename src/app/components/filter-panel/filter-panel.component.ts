@@ -3,7 +3,13 @@ import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 
-import { PROVINCE, ProvinciaKey } from '../../models/impresa.model';
+import {
+  METRICHE,
+  MetricaMappa,
+  PROVINCE,
+  ProvinciaKey,
+  descrittore,
+} from '../../models/impresa.model';
 import { DataService } from '../../services/data.service';
 import {
   FILTRI_INIZIALI,
@@ -27,7 +33,9 @@ export class FilterPanelComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly province = PROVINCE;
+  readonly metriche = METRICHE;
   readonly statistiche = this.data.statistiche;
+  readonly meta = this.data.meta;
   readonly filtri = signal<FilterState>({ ...FILTRI_INIZIALI });
 
   constructor() {
@@ -36,13 +44,18 @@ export class FilterPanelComponent {
       .subscribe((f) => this.filtri.set(f));
   }
 
+  /** Spiegazione della metrica attualmente selezionata. */
+  get spiegazione(): string {
+    return descrittore(this.filtri().metrica).descrizione;
+  }
+
   /** Comuni che superano i filtri correnti. */
   get comuniVisibili(): number {
     const f = this.filtri();
     return this.data.comuni().filter((c) => FilterService.passa(c, f)).length;
   }
 
-  /** Imprese totali nei comuni visibili. */
+  /** Imprese attive nei comuni visibili. */
   get impreseVisibili(): number {
     const f = this.filtri();
     return this.data
@@ -56,17 +69,11 @@ export class FilterPanelComponent {
   }
 
   cambiaProvincia(valore: string): void {
-    this.filterService.setProvincia(
-      valore ? (valore as ProvinciaKey) : null,
-    );
+    this.filterService.setProvincia(valore ? (valore as ProvinciaKey) : null);
   }
 
-  toggleFemminili(): void {
-    this.filterService.patch({ soloFemminili: !this.filtri().soloFemminili });
-  }
-
-  toggleGiovanili(): void {
-    this.filterService.patch({ soloGiovanili: !this.filtri().soloGiovanili });
+  cambiaMetrica(metrica: MetricaMappa): void {
+    this.filterService.setMetrica(metrica);
   }
 
   cambiaSoglia(valore: string | number): void {

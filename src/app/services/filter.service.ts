@@ -8,18 +8,15 @@ import { MetricaMappa, ProvinciaKey } from '../models/impresa.model';
 export interface FilterState {
   /** null = tutte le province. */
   provincia: ProvinciaKey | null;
-  /** Colora la mappa sulla quota di imprese femminili. */
-  soloFemminili: boolean;
-  /** Colora la mappa sulla quota di imprese giovanili. */
-  soloGiovanili: boolean;
-  /** Nasconde i comuni sotto questa soglia di imprese totali (0-500). */
+  /** Metrica su cui e colorata la mappa. */
+  metrica: MetricaMappa;
+  /** Nasconde i comuni sotto questa soglia di imprese attive (0-500). */
   sogliaMinima: number;
 }
 
 export const FILTRI_INIZIALI: FilterState = {
   provincia: null,
-  soloFemminili: false,
-  soloGiovanili: false,
+  metrica: 'densita',
   sogliaMinima: 0,
 };
 
@@ -43,18 +40,19 @@ export class FilterService {
 
   /** Aggiorna una parte dello stato mantenendo il resto. */
   patch(parziale: Partial<FilterState>): void {
-    const prossimo = { ...this._filtri$.value, ...parziale };
-
-    // I due toggle di metrica sono mutuamente esclusivi: attivarne uno
-    // spegne l'altro, altrimenti la scala colori non sarebbe interpretabile.
-    if (parziale.soloFemminili === true) prossimo.soloGiovanili = false;
-    if (parziale.soloGiovanili === true) prossimo.soloFemminili = false;
-
-    this._filtri$.next(prossimo);
+    this._filtri$.next({ ...this._filtri$.value, ...parziale });
   }
 
   setProvincia(provincia: ProvinciaKey | null): void {
     this.patch({ provincia });
+  }
+
+  /**
+   * La metrica e una scelta fra tre, non tre interruttori indipendenti: due
+   * scale colori sovrapposte sulla stessa mappa non sarebbero leggibili.
+   */
+  setMetrica(metrica: MetricaMappa): void {
+    this.patch({ metrica });
   }
 
   setSogliaMinima(sogliaMinima: number): void {
@@ -63,13 +61,6 @@ export class FilterService {
 
   reset(): void {
     this._filtri$.next({ ...FILTRI_INIZIALI });
-  }
-
-  /** Metrica su cui va colorata la mappa in base ai toggle attivi. */
-  static metrica(f: FilterState): MetricaMappa {
-    if (f.soloFemminili) return 'femminili';
-    if (f.soloGiovanili) return 'giovanili';
-    return 'densita';
   }
 
   /** True se il comune supera i filtri correnti (provincia + soglia). */
@@ -83,8 +74,7 @@ export class FilterService {
   static attivi(f: FilterState): boolean {
     return (
       f.provincia !== null ||
-      f.soloFemminili ||
-      f.soloGiovanili ||
+      f.metrica !== FILTRI_INIZIALI.metrica ||
       f.sogliaMinima > 0
     );
   }

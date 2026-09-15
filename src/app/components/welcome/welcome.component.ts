@@ -22,5 +22,13 @@ export class WelcomeComponent {
   private readonly data = inject(DataService);
 
   readonly statistiche = this.data.statistiche;
+  readonly meta = this.data.meta;
   readonly pronto = this.data.pronto;
+
+  constructor() {
+    // La nota sui dati cita gli anni reali del dataset: chi arriva da un link
+    // diretto alla home non passa dalla mappa, quindi il caricamento va avviato
+    // anche qui (è idempotente).
+    this.data.load();
+  }
 }

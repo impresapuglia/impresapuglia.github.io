@@ -1,11 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import * as L from 'leaflet';
 
-import { ComuneData, pctFemminili, pctGiovanili } from '../models/comune.model';
+import { ComuneData, variazioneAnnua } from '../models/comune.model';
 import {
   MetricaMappa,
   SETTORE_LABEL,
   SettoreKey,
+  descrittore,
 } from '../models/impresa.model';
 import { TemaService } from './tema.service';
 
@@ -136,13 +137,19 @@ export class MapService {
   /** Valore grezzo del comune per la metrica selezionata. */
   valoreMetrica(c: ComuneData, metrica: MetricaMappa): number {
     switch (metrica) {
-      case 'femminili':
-        return pctFemminili(c);
-      case 'giovanili':
-        return pctGiovanili(c);
+      case 'dimensione':
+        return c.dimensione_media;
+      case 'natalita':
+        return c.tasso_natalita;
       default:
         return c.densita_imprenditoriale;
     }
+  }
+
+  /** Titolo e unita della legenda per la metrica selezionata. */
+  etichettaMetrica(metrica: MetricaMappa): { titolo: string; suffisso: string } {
+    const d = descrittore(metrica);
+    return { titolo: d.label, suffisso: d.suffisso };
   }
 
   /** Porta un valore nell'intervallo 0-100 rispetto al min/max del dataset. */
@@ -257,13 +264,30 @@ export class MapService {
   // Tooltip
   // -----------------------------------------------------------------
 
-  /** Tooltip della mappa principale: nome, totale imprese, % femminili. */
-  tooltipComune(c: ComuneData): string {
+  /**
+   * Tooltip della mappa principale. La riga della metrica selezionata viene
+   * per prima e in evidenza: e quella che spiega il colore che l'utente sta
+   * guardando, mentre le altre due danno il contesto.
+   */
+  tooltipComune(c: ComuneData, metrica: MetricaMappa = 'densita'): string {
+    const righe: Record<MetricaMappa, string> = {
+      densita: `Densità <span class="ip-tooltip__value">${NF1.format(c.densita_imprenditoriale)}</span> ogni 1.000 ab.`,
+      dimensione: `Dimensione media <span class="ip-tooltip__value">${NF1.format(c.dimensione_media)}</span> addetti`,
+      natalita: `Natalità <span class="ip-tooltip__value">${NF1.format(c.tasso_natalita)}%</span> di nuove iscrizioni`,
+    };
+    const ordine: MetricaMappa[] = [
+      metrica,
+      ...(['densita', 'dimensione', 'natalita'] as MetricaMappa[]).filter(
+        (m) => m !== metrica,
+      ),
+    ];
+    const variazione = variazioneAnnua(c);
+    const segno = variazione >= 0 ? '+' : '−';
+
     return `
       <span class="ip-tooltip__title">${this.escape(c.comune)} <span class="ip-tooltip__prov">${c.provincia}</span></span>
-      <span class="ip-tooltip__row">Imprese <span class="ip-tooltip__value">${NF.format(c.totale_imprese)}</span></span>
-      <span class="ip-tooltip__row">Femminili <span class="ip-tooltip__value">${NF1.format(pctFemminili(c))}%</span></span>
-      <span class="ip-tooltip__row">Densità <span class="ip-tooltip__value">${NF1.format(c.densita_imprenditoriale)}</span> / 1.000 ab.</span>
+      <span class="ip-tooltip__row">Imprese attive <span class="ip-tooltip__value">${NF.format(c.totale_imprese)}</span> <span class="ip-tooltip__prov">${segno}${NF1.format(Math.abs(variazione))}% sull'anno prima</span></span>
+      ${ordine.map((m) => `<span class="ip-tooltip__row">${righe[m]}</span>`).join('')}
     `;
   }
 

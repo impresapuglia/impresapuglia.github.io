@@ -1,222 +1,331 @@
 """
-02_clean.py — normalizza i file grezzi in un unico formato tabellare.
+02_clean.py — normalizza i CSV di raw/ in un'unica tabella tidy.
 
-Cosa fa:
-  1. legge ogni file di raw/ (CSV o XLS/XLSX), provando piu separatori e
-     codifiche, perche i file del portale non sono omogenei;
-  2. rinomina le colonne sul vocabolario canonico di config.ALIAS_COLONNE;
-  3. standardizza i nomi dei comuni (minuscolo, senza accenti, senza suffissi
-     tipo " (LE)") e li riconcilia con l'elenco ufficiale letto dal GeoJSON;
-  4. mappa le descrizioni ATECO sui sette settori dell'app;
-  5. imputa i valori mancanti con la media provinciale.
+Legge solo le sorgenti dichiarate in config.SORGENTI (gli altri file scaricati
+dallo stesso dataset CKAN sono elencati in config.IGNORATI con il motivo) e
+produce:
 
-Output: clean/osservazioni.csv con colonne
-    tema, provincia, periodo, comune, istat, settore, valore
+    clean/osservazioni.csv   istat,comune,provincia,anno,tema,voce,valore
 
-Uso: python 02_clean.py
+dove `tema` e "imprese" o "addetti" e `voce` e uno dei sette settori dell'app,
+oppure `tema` e "natimortalita" e `voce` e registrate/attive/iscrizioni/
+cessazioni.
+
+Le anomalie dei file di origine, tutte verificate sul dato reale:
+
+  - nel 2022 i dieci comuni della BAT compaiono due volte, una sotto la
+    provincia storica (BARI, FOGGIA) e una sotto BARLETTA-ANDRIA-TRANI, con
+    valori identici. Si deduplica su (istat, anno) e si avvisa se i due valori
+    non coincidono, perche in quel caso la scelta non sarebbe innocua.
+  - nel 2022 e nel 2024 i nomi dei comuni hanno uno spazio iniziale.
+  - "CASTELLUCCIO" nel 2020-2021 e "CASTELLUCCIO VALMAGGIORE" dal 2022.
+  - migliaia di celle contengono "-" e altre sono vuote: entrambe valgono zero.
+
+Il join con il GeoJSON e per nome normalizzato, unica chiave disponibile nei
+CSV; ogni comune non riconosciuto viene elencato a fine esecuzione invece di
+essere scartato in silenzio.
+
+Uso:
+    python 02_clean.py
 """
 
 from __future__ import annotations
 
+import csv
 import json
 import re
 import sys
 import unicodedata
+from collections import defaultdict
 from pathlib import Path
 
-import pandas as pd
+from config import (
+    ALIAS_COMUNE,
+    CLEAN,
+    NON_COMUNI,
+    COLONNE_ATECO,
+    COLONNE_NATIMORTALITA,
+    GEOJSON,
+    IGNORATI,
+    RAW,
+    SETTORI,
+    SORGENTI,
+)
 
-try:
-    from unidecode import unidecode
-except ImportError:  # fallback: unicodedata basta per l'italiano
-    def unidecode(testo: str) -> str:  # type: ignore[misc]
-        nfkd = unicodedata.normalize("NFKD", testo)
-        return "".join(c for c in nfkd if not unicodedata.combining(c))
-
-from config import ALIAS_COLONNE, ATECO_A_SETTORE, CLEAN, GEOJSON, RAW
-
-SEPARATORI = [",", ";", "\t", "|"]
-CODIFICHE = ["utf-8-sig", "utf-8", "latin-1"]
-
-
-# --------------------------------------------------------------------------
-# Normalizzazione testuale
-# --------------------------------------------------------------------------
-
-def norm(testo: object) -> str:
-    """minuscolo, senza accenti, spazi compattati."""
-    s = unidecode(str(testo)).lower().strip()
-    return re.sub(r"\s+", " ", s)
+ENCODING_TENTATIVI = ("utf-8-sig", "utf-8", "latin-1")
 
 
-def norm_comune(testo: object) -> str:
-    """Come norm(), ma toglie la sigla provinciale e la punteggiatura."""
-    s = norm(testo)
-    s = re.sub(r"\s*\((?:[a-z]{2}|[^)]*)\)\s*$", "", s)  # "Nardò (LE)" -> "nardo"
-    s = s.replace("'", " ").replace("-", " ").replace(".", " ")
-    s = re.sub(r"\s+", " ", s).strip()
-    return s
+# --- normalizzazione ------------------------------------------------------
+
+def senza_accenti(testo: str) -> str:
+    nfkd = unicodedata.normalize("NFKD", testo or "")
+    return "".join(c for c in nfkd if not unicodedata.combining(c))
 
 
-def settore_da_ateco(descrizione: object) -> str:
-    d = norm(descrizione)
-    for chiave, settore in ATECO_A_SETTORE:
-        if chiave in d:
-            return settore
-    return "altro"
+def norm_nome(testo: str) -> str:
+    """
+    Nome comune confrontabile: minuscolo, senza accenti, spazi compattati.
+
+    L'apostrofo finale viene rimosso: i file scrivono NARDO', PATU', SECLI' in
+    maiuscolo, dove l'ISTAT scrive Nardo, Patu, Secli con l'accento. Nessun
+    comune italiano ha un nome che finisce davvero per apostrofo, quindi la
+    regola e sicura e copre i casi futuri senza allungare ALIAS_COMUNE.
+    """
+    s = senza_accenti(testo).lower().replace("’", "'").strip()
+    s = re.sub(r"\s+", " ", s).rstrip("'")
+    return ALIAS_COMUNE.get(s, s)
 
 
-# --------------------------------------------------------------------------
-# Lettura tollerante dei file grezzi
-# --------------------------------------------------------------------------
+def norm_colonna(testo: str) -> str:
+    """Nome colonna confrontabile: underscore e spazi diventano uno spazio."""
+    s = senza_accenti(testo).lower().replace("_", " ").replace("’", "'")
+    return re.sub(r"\s+", " ", s).strip()
 
-def leggi(percorso: Path) -> pd.DataFrame | None:
-    if percorso.suffix.lower() in {".xls", ".xlsx"}:
+
+def num(valore: object) -> int:
+    """
+    Converte una cella in intero. "-" e la stringa vuota valgono zero: nei file
+    IPRES indicano "nessuna impresa", non "dato mancante". Tollera il punto come
+    separatore delle migliaia e gli spazi di allineamento.
+    """
+    s = str(valore if valore is not None else "").strip()
+    if s in ("", "-", "..", "n.d.", "nd"):
+        return 0
+    s = s.replace(".", "").replace(",", "").replace(" ", "").replace("\xa0", "")
+    return int(s) if s.lstrip("-").isdigit() else 0
+
+
+def leggi_csv(percorso: Path) -> list[dict[str, str]]:
+    """Legge un CSV provando piu codifiche e deducendo il separatore."""
+    for enc in ENCODING_TENTATIVI:
         try:
-            return pd.read_excel(percorso)
-        except Exception as err:  # noqa: BLE001
-            print(f"    ! Excel illeggibile ({err})")
-            return None
+            testo = percorso.read_text(encoding=enc)
+        except UnicodeDecodeError:
+            continue
+        righe = testo.splitlines()
+        prima = righe[0] if righe else ""
+        sep = max(",;\t|", key=prima.count)
+        return list(csv.DictReader(righe, delimiter=sep))
+    print(f"    ! nessuna codifica valida per {percorso.name}")
+    return []
 
-    for codifica in CODIFICHE:
-        for sep in SEPARATORI:
-            try:
-                df = pd.read_csv(percorso, sep=sep, encoding=codifica,
-                                 dtype=str, engine="python")
-            except Exception:  # noqa: BLE001
-                continue
-            if df.shape[1] > 1:
-                return df
-    print("    ! nessuna combinazione separatore/codifica ha funzionato")
+
+# --- riconciliazione con il GeoJSON ---------------------------------------
+
+def indice_geojson() -> dict[str, tuple[str, str, str]]:
+    """nome normalizzato -> (codice istat, nome ufficiale, sigla provincia)."""
+    geo = json.loads(GEOJSON.read_text(encoding="utf-8"))
+    indice: dict[str, tuple[str, str, str]] = {}
+    for feature in geo["features"]:
+        p = feature["properties"]
+        indice[norm_nome(p["nome"])] = (p["istat"], p["nome"], p["prov"])
+    return indice
+
+
+# --- lettura delle sorgenti -----------------------------------------------
+
+def sorgente_di(nome_file: str) -> tuple[str, str] | None:
+    """(tema, layout) per un file di raw/, None se va ignorato."""
+    for frammento in IGNORATI:
+        if frammento in nome_file:
+            return None
+    for frammento, tema, layout in SORGENTI:
+        if frammento in nome_file:
+            return tema, layout
     return None
 
 
-def rinomina_colonne(df: pd.DataFrame) -> pd.DataFrame:
-    mappa = {}
-    for col in df.columns:
-        chiave = norm(col)
-        if chiave in ALIAS_COLONNE:
-            mappa[col] = ALIAS_COLONNE[chiave]
-        else:
-            # match parziale: "numero imprese registrate" -> valore
-            for alias, canonico in ALIAS_COLONNE.items():
-                if alias in chiave:
-                    mappa[col] = canonico
-                    break
-    return df.rename(columns=mappa)
+def anno_dal_nome(nome_file: str) -> int | None:
+    """Per la nati-mortalita l'anno sta nel nome della risorsa (imprese-2023)."""
+    trovato = re.search(r"imprese-(20\d{2})", nome_file)
+    return int(trovato.group(1)) if trovato else None
 
 
-# --------------------------------------------------------------------------
-# Anagrafica comuni dal GeoJSON (fonte di verita per nomi e codici ISTAT)
-# --------------------------------------------------------------------------
-
-def anagrafica() -> dict[str, tuple[str, str, str]]:
-    """chiave normalizzata -> (nome ufficiale, sigla provincia, codice ISTAT)."""
-    if not GEOJSON.exists():
-        raise SystemExit(f"GeoJSON mancante: {GEOJSON}")
-    geo = json.loads(GEOJSON.read_text(encoding="utf-8"))
-    out: dict[str, tuple[str, str, str]] = {}
-    for feat in geo["features"]:
-        p = feat["properties"]
-        out[norm_comune(p["nome"])] = (p["nome"], p["prov"], p["istat"])
-    return out
+Osservazione = tuple[str, str, str, int, str, str, int]
 
 
-# --------------------------------------------------------------------------
+def da_matrice_ateco(
+    righe: list[dict[str, str]], tema: str, geo: dict, ignoti: set[str]
+) -> list[Osservazione]:
+    """Province,Comuni,Anni + una colonna per sezione ATECO."""
+    if not righe:
+        return []
 
-def metadati_da_nome(percorso: Path) -> tuple[str, str, str]:
-    """raw/<tema>_<PROV>_<PERIODO>__<slug>.csv -> (tema, provincia, periodo)."""
-    testa = percorso.stem.split("__", 1)[0]
-    pezzi = testa.split("_")
-    if len(pezzi) >= 3:
-        return pezzi[0], pezzi[1], "_".join(pezzi[2:])
-    return testa, "PUG", "NA"
+    # Mappa colonna del file -> settore dell'app, calcolata una volta sola.
+    mappa: dict[str, str] = {}
+    non_mappate: list[str] = []
+    for colonna in righe[0]:
+        chiave = norm_colonna(colonna)
+        if chiave in ("province", "provincia", "comuni", "comune", "anni",
+                      "anno", "totale"):
+            continue
+        settore = COLONNE_ATECO.get(chiave)
+        if settore:
+            mappa[colonna] = settore
+        elif chiave:
+            non_mappate.append(colonna)
+    if non_mappate:
+        print(f"    ! colonne non mappate: {', '.join(non_mappate)}")
 
+    # (istat, anno) -> settore -> valore, cosi i duplicati si incontrano.
+    accumulato: dict[tuple[str, int], dict[str, int]] = {}
+    meta: dict[tuple[str, int], tuple[str, str]] = {}
+    conflitti = 0
+    duplicati = 0
+
+    for riga in righe:
+        nome = norm_nome(riga.get("Comuni") or riga.get("COMUNI") or "")
+        if not nome or nome in NON_COMUNI:
+            continue
+        if nome not in geo:
+            ignoti.add(nome)
+            continue
+        istat, ufficiale, provincia = geo[nome]
+        anno = num(riga.get("Anni") or riga.get("Anno") or riga.get("ANNO"))
+        if not anno:
+            continue
+
+        per_settore = {s: 0 for s in SETTORI}
+        for colonna, settore in mappa.items():
+            per_settore[settore] += num(riga.get(colonna))
+
+        chiave = (istat, anno)
+        if chiave in accumulato:
+            duplicati += 1
+            if accumulato[chiave] != per_settore:
+                conflitti += 1
+                print(f"    ! {ufficiale} {anno}: due righe con valori "
+                      f"diversi, tengo la prima")
+            continue
+        accumulato[chiave] = per_settore
+        meta[chiave] = (ufficiale, provincia)
+
+    if duplicati:
+        print(f"    = {duplicati} righe duplicate scartate "
+              f"({conflitti} con valori discordanti)")
+
+    fuori: list[Osservazione] = []
+    for (istat, anno), per_settore in accumulato.items():
+        ufficiale, provincia = meta[(istat, anno)]
+        for settore in SETTORI:
+            fuori.append(
+                (istat, ufficiale, provincia, anno, tema, settore,
+                 per_settore[settore])
+            )
+    return fuori
+
+
+def da_natimortalita(
+    righe: list[dict[str, str]], anno: int, geo: dict, ignoti: set[str]
+) -> list[Osservazione]:
+    """Province,Comuni + Registrate,Attive,Iscrizioni,Cessazioni."""
+    mappa = {
+        colonna: COLONNE_NATIMORTALITA[norm_colonna(colonna)]
+        for colonna in (righe[0] if righe else {})
+        if norm_colonna(colonna) in COLONNE_NATIMORTALITA
+    }
+
+    fuori: list[Osservazione] = []
+    visti: set[str] = set()
+    for riga in righe:
+        nome = norm_nome(riga.get("Comuni") or "")
+        if not nome or nome in NON_COMUNI:
+            continue
+        if nome not in geo:
+            ignoti.add(nome)
+            continue
+        istat, ufficiale, provincia = geo[nome]
+        if istat in visti:
+            continue
+        visti.add(istat)
+        for colonna, voce in mappa.items():
+            fuori.append(
+                (istat, ufficiale, provincia, anno, "natimortalita", voce,
+                 num(riga.get(colonna)))
+            )
+    return fuori
+
+
+# --- programma ------------------------------------------------------------
 
 def main() -> int:
+    if not GEOJSON.exists():
+        print(f"! manca {GEOJSON}")
+        return 1
     if not RAW.exists() or not any(RAW.iterdir()):
-        print("raw/ e vuota: esegui prima 01_download.py")
+        print(f"! {RAW} e vuota: esegui prima 01_download.py --solo-noti")
         return 1
 
-    CLEAN.mkdir(parents=True, exist_ok=True)
-    comuni = anagrafica()
-    righe: list[pd.DataFrame] = []
-    non_riconosciuti: set[str] = set()
+    geo = indice_geojson()
+    print(f"GeoJSON: {len(geo)} comuni\n")
+
+    osservazioni: list[Osservazione] = []
+    ignoti: set[str] = set()
+    usati = 0
 
     for percorso in sorted(RAW.iterdir()):
-        if percorso.suffix.lower() not in {".csv", ".xls", ".xlsx"}:
+        if not percorso.is_file() or percorso.suffix.lower() != ".csv":
             continue
-        print(f"  {percorso.name}")
-        df = leggi(percorso)
-        if df is None or df.empty:
+        sorgente = sorgente_di(percorso.name)
+        if sorgente is None:
             continue
+        tema, layout = sorgente
+        print(f"[{tema}] {percorso.name}")
+        righe = leggi_csv(percorso)
+        print(f"    {len(righe)} righe lette")
 
-        df = rinomina_colonne(df)
-        if "comune" not in df.columns or "valore" not in df.columns:
-            print("    ~ saltato: mancano le colonne comune/valore")
-            continue
-
-        tema, provincia_file, periodo = metadati_da_nome(percorso)
-
-        out = pd.DataFrame()
-        out["comune_norm"] = df["comune"].map(norm_comune)
-        out["settore"] = (
-            df["ateco"].map(settore_da_ateco) if "ateco" in df.columns else "altro"
-        )
-        out["valore"] = pd.to_numeric(
-            df["valore"].astype(str).str.replace(r"[^\d,.-]", "", regex=True)
-            .str.replace(".", "", regex=False)
-            .str.replace(",", ".", regex=False),
-            errors="coerce",
-        )
-
-        # Periodo: preferisci la colonna del file, altrimenti il nome file.
-        if "anno" in df.columns:
-            out["periodo"] = df["anno"].astype(str).str.strip()
+        if layout == "matrice_ateco":
+            nuove = da_matrice_ateco(righe, tema, geo, ignoti)
         else:
-            out["periodo"] = periodo
+            anno = anno_dal_nome(percorso.name)
+            if anno is None:
+                print("    ! anno non deducibile dal nome, salto")
+                continue
+            print(f"    anno {anno}")
+            nuove = da_natimortalita(righe, anno, geo, ignoti)
 
-        # Join con l'anagrafica ufficiale.
-        anag = out["comune_norm"].map(lambda k: comuni.get(k))
-        non_riconosciuti.update(
-            out.loc[anag.isna(), "comune_norm"].dropna().unique().tolist()
-        )
-        out = out[anag.notna()].copy()
-        anag = anag[anag.notna()]
-        out["comune"] = [a[0] for a in anag]
-        out["provincia"] = [a[1] for a in anag]
-        out["istat"] = [a[2] for a in anag]
-        out["tema"] = tema
+        print(f"    -> {len(nuove)} osservazioni")
+        osservazioni.extend(nuove)
+        usati += 1
 
-        righe.append(
-            out[["tema", "provincia", "periodo", "comune", "istat",
-                 "settore", "valore"]]
-        )
-        print(f"    ok: {len(out)} righe")
-
-    if not righe:
-        print("Nessuna riga utilizzabile.")
+    if usati == 0:
+        print("\n! nessuna sorgente riconosciuta in raw/. Controlla che i nomi "
+              "dei file contengano le sottostringhe di config.SORGENTI.")
         return 1
 
-    tabella = pd.concat(righe, ignore_index=True)
+    if ignoti:
+        print(f"\n! {len(ignoti)} nomi comune non riconciliati col GeoJSON:")
+        for nome in sorted(ignoti):
+            print(f"    - {nome}")
+        print("  aggiungili a config.ALIAS_COMUNE se sono varianti di nome.")
 
-    # Imputazione dei valori mancanti con la media provinciale del settore,
-    # con fallback sulla media regionale del settore.
-    media_prov = tabella.groupby(["provincia", "settore"])["valore"].transform("mean")
-    media_reg = tabella.groupby("settore")["valore"].transform("mean")
-    mancanti = tabella["valore"].isna().sum()
-    tabella["valore"] = tabella["valore"].fillna(media_prov).fillna(media_reg).fillna(0)
-    tabella["valore"] = tabella["valore"].round().astype(int)
-
+    CLEAN.mkdir(parents=True, exist_ok=True)
     destinazione = CLEAN / "osservazioni.csv"
-    tabella.to_csv(destinazione, index=False, encoding="utf-8")
+    with destinazione.open("w", newline="", encoding="utf-8") as fh:
+        scrittore = csv.writer(fh)
+        scrittore.writerow(
+            ["istat", "comune", "provincia", "anno", "tema", "voce", "valore"]
+        )
+        scrittore.writerows(sorted(osservazioni))
 
-    print(f"\nScritte {len(tabella)} osservazioni in {destinazione}")
-    print(f"Valori imputati con la media provinciale: {mancanti}")
-    if non_riconosciuti:
-        anteprima = ", ".join(sorted(non_riconosciuti)[:12])
-        print(f"Comuni non riconosciuti ({len(non_riconosciuti)}): {anteprima} …")
-        print("  -> se sono comuni pugliesi, aggiungili come alias in norm_comune().")
+    # Riepilogo della copertura, per accorgersi subito di un buco.
+    copertura: dict[tuple[str, int], set[str]] = defaultdict(set)
+    for istat, _, _, anno, tema, _, _ in osservazioni:
+        copertura[(tema, anno)].add(istat)
+
+    print(f"\n-> clean/{destinazione.name}: {len(osservazioni)} osservazioni")
+    print("   copertura per tema e anno:")
+    for chiave in sorted(copertura):
+        tema, anno = chiave
+        print(f"     {tema:15} {anno}  {len(copertura[chiave])} comuni")
+
+    mancano = [
+        f"{tema} {anno}"
+        for (tema, anno), comuni in sorted(copertura.items())
+        if len(comuni) < len(geo)
+    ]
+    if mancano:
+        print(f"   ! copertura incompleta su: {', '.join(mancano)}")
     return 0
 
 

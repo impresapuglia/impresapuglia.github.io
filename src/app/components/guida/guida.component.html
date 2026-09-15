@@ -83,16 +83,18 @@
 
         <h3 class="mt-5 text-sm font-semibold uppercase tracking-wider2 text-ink-soft">Cosa misura il colore</h3>
         <p class="mt-2 leading-relaxed text-ink-soft">
-          Per impostazione predefinita il colore rappresenta la
+          All'apertura il colore rappresenta la
           <strong class="text-ink">densità imprenditoriale</strong>: quante imprese
-          sono registrate ogni 1.000 abitanti. È una misura di intensità, non di
+          attive ci sono ogni 1.000 abitanti. È una misura di intensità, non di
           dimensione — un paese di 3.000 abitanti con molte partite IVA può
           risultare più "denso" di un capoluogo.
         </p>
         <p class="mt-3 leading-relaxed text-ink-soft">
           Questo è anche il motivo per cui la mappa non premia automaticamente le
-          città grandi: se volete il volume assoluto, quello sta nel pannello di
-          dettaglio e nel riepilogo della sidebar.
+          città grandi: se cercate il volume assoluto, quello sta nel pannello di
+          dettaglio e nel riepilogo della sidebar. Dai filtri si può cambiare la
+          metrica di colorazione: le tre disponibili sono descritte
+          <a href="#metriche" class="font-medium text-brand hover:text-brand-2">qui sotto</a>.
         </p>
 
         <div class="mt-4 rounded-xl border border-line bg-card p-4">
@@ -144,6 +146,57 @@
         </p>
       </section>
 
+      <!-- ============ METRICHE ============ -->
+      <section id="metriche" class="scroll-mt-6">
+        <h2 class="text-xl font-semibold tracking-tight text-ink">Le tre metriche</h2>
+        <p class="mt-3 leading-relaxed text-ink-soft">
+          La mappa può essere colorata su tre grandezze diverse. Sono tutte
+          rapporti, non valori assoluti: è l'unico modo per mettere sulla stessa
+          scala un comune di 150 abitanti e uno di 313.000.
+        </p>
+
+        <div class="mt-4 space-y-3">
+          @for (m of metriche; track m.code) {
+            <div class="rounded-xl border border-line bg-card p-4">
+              <p class="text-sm font-semibold text-ink">{{ m.label }}</p>
+              <p class="mt-1.5 text-sm leading-relaxed text-ink-soft">{{ m.descrizione }}</p>
+            </div>
+          }
+        </div>
+
+        <div class="mt-4 rounded-xl border-l-2 border-brand bg-card p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider2 text-brand">Perché queste tre</p>
+          <p class="mt-2 text-sm leading-relaxed text-ink-soft">
+            Rispondono a tre domande diverse su uno stesso territorio: quanta
+            impresa c'è, quanto è strutturata, e se il tessuto si sta rinnovando.
+            Un comune può avere densità alta e natalità bassa — molte imprese
+            vecchie e nessuna nuova — e guardando una sola metrica non lo si
+            vedrebbe.
+          </p>
+        </div>
+      </section>
+
+      <!-- ============ SETTORI ============ -->
+      <section id="settori" class="scroll-mt-6">
+        <h2 class="text-xl font-semibold tracking-tight text-ink">I sette settori</h2>
+        <p class="mt-3 leading-relaxed text-ink-soft">
+          La fonte classifica le imprese nelle 21 sezioni ATECO 2007. Ventuno barre
+          non si confrontano a occhio, quindi l'app le raggruppa in sette settori.
+          Questa è la corrispondenza esatta: serve a sapere cosa c'è dentro ogni
+          barra, in particolare dentro "Altro", che da solo può valere un terzo
+          delle imprese di un comune senza che sia un errore.
+        </p>
+
+        <dl class="mt-4 space-y-2">
+          @for (s of settori; track s) {
+            <div class="rounded-xl border border-line bg-card p-4">
+              <dt class="text-sm font-semibold text-ink">{{ settoreLabel[s] }}</dt>
+              <dd class="mt-1 text-sm leading-relaxed text-ink-soft">{{ composizione[s] }}</dd>
+            </div>
+          }
+        </dl>
+      </section>
+
       <!-- ============ FILTRI ============ -->
       <section id="filtri" class="scroll-mt-6">
         <h2 class="text-xl font-semibold tracking-tight text-ink">I filtri</h2>
@@ -157,21 +210,24 @@
             </dd>
           </div>
           <div class="rounded-xl border border-line bg-card p-4">
-            <dt class="text-sm font-semibold text-ink">Solo imprese femminili / giovanili</dt>
+            <dt class="text-sm font-semibold text-ink">Colora la mappa su</dt>
             <dd class="mt-1.5 text-sm leading-relaxed text-ink-soft">
-              Non nascondono nulla: <strong class="text-ink">cambiano cosa misura il colore</strong>.
-              Con uno dei due attivo la mappa non mostra più la densità ma la quota
-              percentuale di quel tipo di impresa sul totale comunale. I due
-              interruttori si escludono a vicenda, perché una scala di colori può
-              rappresentare una grandezza sola.
+              Non nasconde nulla: <strong class="text-ink">cambia cosa misura il colore</strong>,
+              scegliendo fra densità, dimensione media e natalità. È una scelta fra
+              tre e non tre interruttori indipendenti, perché una scala di colori può
+              rappresentare una grandezza sola: due metriche sovrapposte sulla stessa
+              mappa non sarebbero leggibili.
             </dd>
           </div>
           <div class="rounded-xl border border-line bg-card p-4">
             <dt class="text-sm font-semibold text-ink">Soglia minima imprese</dt>
             <dd class="mt-1.5 text-sm leading-relaxed text-ink-soft">
-              Esclude dalla scala i comuni sotto un certo numero di imprese. Serve
-              a togliere rumore: su numeri piccoli una percentuale oscilla molto e
-              può creare falsi primati. I comuni esclusi restano visibili, spenti.
+              Esclude dalla scala i comuni sotto un certo numero di imprese attive.
+              Serve a togliere rumore: su numeri piccoli un rapporto oscilla molto e
+              può creare falsi primati — Celle di San Vito, il comune più piccolo
+              della Puglia, ha 30 imprese registrate e nel 2023 nessuna nuova
+              iscrizione, quindi natalità zero. I comuni esclusi restano visibili,
+              spenti.
             </dd>
           </div>
         </dl>
@@ -181,49 +237,67 @@
       <section id="comune" class="scroll-mt-6">
         <h2 class="text-xl font-semibold tracking-tight text-ink">Il pannello del comune</h2>
         <p class="mt-3 leading-relaxed text-ink-soft">
-          Si apre cliccando un comune sulla mappa. Contiene cinque blocchi.
+          Si apre cliccando un comune sulla mappa. Contiene sei blocchi.
         </p>
 
         <ol class="mt-4 space-y-4">
           <li class="rounded-xl border border-line bg-card p-4">
             <p class="text-sm font-semibold text-ink">1 · I tre numeri in alto</p>
             <p class="mt-1.5 text-sm leading-relaxed text-ink-soft">
-              Totale imprese registrate, quota femminile e quota giovanile, con il
-              valore assoluto sotto la percentuale.
+              Imprese attive, addetti (con la dimensione media sotto) e tasso di
+              natalità (con il numero di nuove iscrizioni sotto). Sono le tre
+              grandezze su cui si può colorare la mappa, lette sul singolo comune.
             </p>
           </li>
           <li class="rounded-xl border border-line bg-card p-4">
             <p class="text-sm font-semibold text-ink">2 · Gli indicatori di scostamento</p>
             <p class="mt-1.5 text-sm leading-relaxed text-ink-soft">
-              Le due etichette con freccia confrontano il comune con il resto della
+              Le etichette con freccia confrontano il comune con il resto della
               regione: <span class="font-medium text-up">▲ verde</span> se è sopra
               la media o in crescita, <span class="font-medium text-down">▼ rosso</span>
-              se è sotto o in calo. La prima riguarda la densità, la seconda la
-              variazione delle imprese nell'ultimo anno.
+              se è sotto o in calo. Nell'ordine: densità rispetto alla media
+              regionale, variazione delle imprese attive sull'ultimo anno, e saldo
+              fra iscrizioni e cessazioni ogni 100 imprese registrate.
             </p>
           </li>
           <li class="rounded-xl border border-line bg-card p-4">
-            <p class="text-sm font-semibold text-ink">3 · Imprese per settore</p>
+            <p class="text-sm font-semibold text-ink">3 · Nati-mortalità</p>
+            <p class="mt-1.5 text-sm leading-relaxed text-ink-soft">
+              Imprese registrate, iscrizioni e cessazioni dell'anno più recente
+              disponibile@if (meta().anno_natimortalita) {, il <span class="tabular-nums">{{ meta().anno_natimortalita }}</span>}.
+              Attenzione alla differenza fra <strong class="text-ink">registrate</strong>
+              — tutte le posizioni iscritte al registro, comprese quelle inattive — e
+              <strong class="text-ink">attive</strong>, che è il numero mostrato in
+              alto e usato per la densità.
+            </p>
+          </li>
+          <li class="rounded-xl border border-line bg-card p-4">
+            <p class="text-sm font-semibold text-ink">4 · Imprese per settore</p>
             <p class="mt-1.5 text-sm leading-relaxed text-ink-soft">
               Barre ordinate dal settore più presidiato al meno presidiato, con il
-              numero di imprese in fondo a ciascuna. I settori sono sette:
-              agricoltura, manifatturiero, costruzioni, commercio, turismo e
-              ristorazione, servizi professionali, altro.
+              numero di imprese in fondo a ciascuna. Un solo colore: il settore è già
+              scritto sull'asse, la lunghezza porta il dato e il colore non deve
+              ricodificarlo. La composizione dei sette settori è
+              <a href="#settori" class="font-medium text-brand hover:text-brand-2">più sopra</a>.
             </p>
           </li>
           <li class="rounded-xl border border-line bg-card p-4">
-            <p class="text-sm font-semibold text-ink">4 · Andamento trimestrale</p>
+            <p class="text-sm font-semibold text-ink">5 · Andamento annuale</p>
             <p class="mt-1.5 text-sm leading-relaxed text-ink-soft">
-              Otto trimestri, espressi come <strong class="text-ink">numero indice con base 100</strong>
-              al primo trimestre della serie. Un valore di 102 significa "+2%
-              rispetto al punto di partenza", non 102 imprese. Le due serie — totale
-              e femminili — sono su scale molto diverse in valore assoluto:
-              ribasandole a 100 diventano confrontabili nelle variazioni, che è la
-              cosa che interessa. Il valore assoluto compare nel tooltip.
+              La serie {{ periodoSerie() || '2020–2024' }}, espressa come
+              <strong class="text-ink">numero indice con base 100</strong> al primo
+              anno. Un valore di 102 significa "+2% rispetto al punto di partenza",
+              non 102 imprese. Le due serie — imprese attive e addetti — stanno su
+              ordini di grandezza diversi (gli addetti sono circa il triplo): su un
+              asse solo diventerebbero due rette piatte, su due assi separati
+              sembrerebbero confrontabili scale che non lo sono. Ribasate a 100 si
+              confrontano nelle variazioni, ed è lì che si vede la cosa
+              interessante: se gli addetti crescono mentre le imprese calano, il
+              tessuto si sta concentrando. Il valore assoluto compare nel tooltip.
             </p>
           </li>
           <li class="rounded-xl border border-line bg-card p-4">
-            <p class="text-sm font-semibold text-ink">5 · Sintesi</p>
+            <p class="text-sm font-semibold text-ink">6 · Sintesi</p>
             <p class="mt-1.5 text-sm leading-relaxed text-ink-soft">
               Tre frasi — punto di forza, criticità, opportunità — generate
               confrontando i valori del comune con le medie regionali. È un calcolo
@@ -291,20 +365,40 @@
       <section id="dati" class="scroll-mt-6">
         <h2 class="text-xl font-semibold tracking-tight text-ink">Da dove vengono i dati</h2>
 
-        <div class="mt-4 rounded-xl border border-gold/40 bg-gold/5 p-4">
-          <p class="text-sm font-semibold text-gold-ink">Stato attuale, senza giri di parole</p>
+        <div class="mt-4 rounded-xl border border-up/40 bg-up/5 p-4">
+          <p class="text-sm font-semibold text-up">Stato attuale, senza giri di parole</p>
           <p class="mt-2 text-sm leading-relaxed text-ink-soft">
-            I <strong class="text-ink">confini comunali sono reali</strong>: vengono
-            dal dataset ISTAT dei limiti amministrativi.
-            I <strong class="text-ink">valori imprenditoriali che vedete adesso non lo sono</strong>:
-            sono generati da uno script, con un seme fisso, in modo che gli ordini
-            di grandezza e le differenze territoriali siano plausibili. Servono a
-            sviluppare e presentare l'interfaccia mentre si completa il collegamento
-            ai dataset reali. Non vanno citati come dati ufficiali.
+            Ogni numero in questa app è reale e viene da un dataset pubblico.
+            Imprese, addetti e settori dei
+            <span class="tabular-nums">{{ meta().comuni || 257 }}</span> comuni
+            @if (meta().anno_imprese) {del <span class="tabular-nums">{{ meta().anno_imprese }}</span>}
+            arrivano dalla serie comunale pubblicata da IPRES per la Regione Puglia
+            @if (statistiche().totaleImprese) {
+              (<span class="tabular-nums">{{ statistiche().totaleImprese | number: '1.0-0' }}</span>
+              imprese attive e
+              <span class="tabular-nums">{{ statistiche().totaleAddetti | number: '1.0-0' }}</span>
+              addetti in tutta la regione)
+            }; iscrizioni e cessazioni dal dataset di nati-mortalità; la popolazione
+            dal censimento ISTAT
+            <span class="tabular-nums">{{ meta().anno_popolazione || 2021 }}</span>;
+            i confini dal dataset ISTAT dei limiti amministrativi.
+          </p>
+          <p class="mt-2 text-sm leading-relaxed text-ink-soft">
+            Una verifica che vale la pena citare: lo stock di imprese attive del
+            2023 calcolato dalla serie settoriale coincide esattamente con la
+            colonna "Attive" del dataset di nati-mortalità, che è una rilevazione
+            distinta. Due file diversi, lo stesso numero.
           </p>
         </div>
 
         <h3 class="mt-6 text-sm font-semibold uppercase tracking-wider2 text-ink-soft">I dataset di origine</h3>
+        <p class="mt-2 text-sm leading-relaxed text-ink-soft">
+          Sono elencati tutti quelli esaminati, non solo quelli usati: i quattro
+          marcati <span class="font-semibold text-up">collegato</span> alimentano
+          l'app, gli altri sono stati scaricati e messi da parte, e qui sotto c'è
+          scritto perché. Un dataset scartato in silenzio è un dataset che qualcuno
+          prima o poi ricollega per sbaglio.
+        </p>
         <div class="mt-3 space-y-3">
           @for (f of fonti; track f.titolo) {
             <div class="rounded-xl border border-line bg-card p-4">
@@ -312,9 +406,13 @@
                 <p class="text-sm font-semibold text-ink">{{ f.titolo }}</p>
                 <span
                   class="shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider2"
-                  [class]="f.stato === 'collegato' ? 'bg-up/10 text-up' : 'bg-gold/10 text-gold-ink'"
+                  [ngClass]="{
+                    'bg-up/10 text-up': f.stato === 'collegato',
+                    'bg-down/10 text-down': f.stato === 'scartato',
+                    'bg-gold/10 text-gold-ink': f.stato === 'valutato'
+                  }"
                 >
-                  {{ f.stato === 'collegato' ? 'collegato' : 'in collegamento' }}
+                  {{ statoLabel[f.stato] }}
                 </span>
               </div>
               <p class="mt-1 text-xs text-ink-soft">{{ f.ente }} · {{ f.copertura }}</p>
@@ -337,24 +435,38 @@
 
         <h3 class="mt-6 text-sm font-semibold uppercase tracking-wider2 text-ink-soft">Come arrivano nell'app</h3>
         <p class="mt-2 leading-relaxed text-ink-soft">
-          Il portale della Regione Puglia pubblica i dati come CSV e XLS sparsi su
-          decine di dataset, uno per provincia e per trimestre. Una pipeline in tre
+          Il portale della Regione Puglia pubblica i dati come CSV e XLSX sparsi su
+          decine di dataset, con nomi e strutture diverse. Una pipeline in quattro
           passi li riporta a un formato unico:
         </p>
         <ol class="mt-3 space-y-2 text-sm leading-relaxed text-ink-soft">
           <li class="flex gap-3">
             <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-brand/10 font-mono text-[11px] font-semibold text-brand">1</span>
-            <span><strong class="text-ink">Scarico.</strong> Interroga l'API del portale per trovare i dataset e scarica le risorse in CSV o Excel.</span>
+            <span><strong class="text-ink">Scarico.</strong> Interroga l'API CKAN del portale invece di usare URL fissi, che sul portale cambiano, e salva le risorse in CSV o XLSX.</span>
           </li>
           <li class="flex gap-3">
             <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-brand/10 font-mono text-[11px] font-semibold text-brand">2</span>
-            <span><strong class="text-ink">Pulizia.</strong> Uniforma i nomi dei comuni (accenti, sigle provinciali fra parentesi, maiuscole), riconcilia ogni riga con il codice ISTAT ufficiale, mappa le descrizioni ATECO sui sette settori e imputa i valori mancanti con la media provinciale.</span>
+            <span><strong class="text-ink">Popolazione.</strong> Scarica la popolazione comunale dal censimento ISTAT e la unisce per codice ISTAT: il portale regionale non la pubblica, e senza di essa la densità non è calcolabile.</span>
           </li>
           <li class="flex gap-3">
             <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-brand/10 font-mono text-[11px] font-semibold text-brand">3</span>
-            <span><strong class="text-ink">Aggregazione.</strong> Somma per comune, calcola percentuali, densità e serie trimestrale, e produce il file che l'app carica.</span>
+            <span><strong class="text-ink">Pulizia.</strong> Uniforma i nomi dei comuni, riconcilia ogni riga con il codice ISTAT ufficiale, raggruppa le 21 sezioni ATECO nei sette settori e normalizza i valori non numerici. Elenca a video ogni comune che non riesce a riconciliare, invece di scartarlo in silenzio.</span>
+          </li>
+          <li class="flex gap-3">
+            <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-brand/10 font-mono text-[11px] font-semibold text-brand">4</span>
+            <span><strong class="text-ink">Aggregazione.</strong> Calcola densità, dimensione media, tasso di natalità, saldo demografico, serie annuale e centroidi, e produce il file che l'app carica.</span>
           </li>
         </ol>
+        <div class="mt-4 rounded-xl border border-line bg-card p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider2 text-ink-soft">Le anomalie che la pulizia corregge</p>
+          <ul class="mt-2 space-y-1.5 text-sm leading-relaxed text-ink-soft">
+            <li>Nel 2022 i dieci comuni della BAT compaiono <strong class="text-ink">due volte</strong>, una sotto la provincia storica e una sotto Barletta-Andria-Trani: senza deduplica quei dieci comuni risulterebbero col doppio delle imprese.</li>
+            <li>Nel 2022 e nel 2024 i nomi dei comuni hanno uno <strong class="text-ink">spazio iniziale</strong>, che basta a far fallire il join.</li>
+            <li><code class="font-mono text-xs">CASTELLUCCIO</code> nel 2020–2021 diventa <code class="font-mono text-xs">CASTELLUCCIO VALMAGGIORE</code> dal 2022, e non va confuso con Castelluccio dei Sauri.</li>
+            <li><code class="font-mono text-xs">NARDO'</code>, <code class="font-mono text-xs">PATU'</code> e <code class="font-mono text-xs">SECLI'</code> hanno l'accento troncato in apostrofo, dove l'ISTAT scrive Nardò, Patù, Seclì.</li>
+            <li>Oltre cinquemila celle contengono <code class="font-mono text-xs">-</code> o sono vuote: significano zero, ma fanno fallire qualunque conversione numerica ingenua.</li>
+          </ul>
+        </div>
         <p class="mt-3 leading-relaxed text-ink-soft">
           L'incastro fra confini e dati avviene sul <strong class="text-ink">codice ISTAT</strong>,
           mai sul nome: i nomi dei comuni hanno accenti, apostrofi e varianti di
@@ -367,30 +479,46 @@
         <h2 class="text-xl font-semibold tracking-tight text-ink">Limiti da conoscere</h2>
         <ul class="mt-4 space-y-3">
           <li class="flex gap-3 rounded-xl border border-line bg-card p-4">
-            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-down"></span>
+            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gold"></span>
             <p class="text-sm leading-relaxed text-ink-soft">
-              <strong class="text-ink">I numeri attuali sono dimostrativi.</strong>
-              Finché la pipeline non è collegata, ogni valore imprenditoriale in
-              questa app è sintetico.
+              <strong class="text-ink">Gli anni non coincidono fra le fonti.</strong>
+              Imprese e addetti arrivano al
+              <span class="tabular-nums">{{ meta().anno_imprese || 2024 }}</span>,
+              iscrizioni e cessazioni al
+              <span class="tabular-nums">{{ meta().anno_natimortalita || 2023 }}</span>,
+              la popolazione è quella del censimento
+              <span class="tabular-nums">{{ meta().anno_popolazione || 2021 }}</span>.
+              La densità mette quindi imprese recenti su una popolazione di tre anni
+              prima: dove la popolazione è calata, la densità risulta un po'
+              sottostimata. Ogni blocco dell'app porta scritto il proprio anno.
             </p>
           </li>
           <li class="flex gap-3 rounded-xl border border-line bg-card p-4">
             <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gold"></span>
             <p class="text-sm leading-relaxed text-ink-soft">
-              <strong class="text-ink">Copertura disomogenea sui dati reali.</strong>
-              Le serie comunali su imprese femminili e giovanili sono pubblicate per
-              provincia e per trimestre, e la copertura più ricca è quella della
-              Camera di Commercio di Lecce. Al momento del collegamento alcune
-              province avranno meno storico.
+              <strong class="text-ink">Niente dato su imprese femminili e giovanili.</strong>
+              Le uniche serie comunali che lo contengono sono quelle della Camera di
+              Commercio di Lecce: coprono una provincia su sei e si fermano al 2020.
+              Colorare la mappa su quel dato lascerebbe spenti 161 comuni su 257,
+              quindi l'app non lo mostra affatto invece di mostrarlo a metà.
+            </p>
+          </li>
+          <li class="flex gap-3 rounded-xl border border-line bg-card p-4">
+            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gold"></span>
+            <p class="text-sm leading-relaxed text-ink-soft">
+              <strong class="text-ink">La serie è corta.</strong>
+              Cinque anni, dal 2020 al 2024, e il primo è l'anno della pandemia. Le
+              variazioni sul periodo vanno lette sapendo da dove partono.
             </p>
           </li>
           <li class="flex gap-3 rounded-xl border border-line bg-card p-4">
             <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gold"></span>
             <p class="text-sm leading-relaxed text-ink-soft">
               <strong class="text-ink">Imprese registrate ≠ imprese attive.</strong>
-              Il dato principale conta le imprese iscritte al registro, che includono
-              posizioni inattive. Dove disponibile, il dataset su imprese attive e
-              addetti permette la distinzione.
+              Le registrate includono posizioni iscritte al registro ma inattive.
+              L'app usa le <strong class="text-ink">attive</strong> per densità,
+              settori e serie storica, e mostra le registrate solo come denominatore
+              del tasso di natalità, che è il modo in cui quel tasso si calcola.
             </p>
           </li>
           <li class="flex gap-3 rounded-xl border border-line bg-card p-4">
@@ -398,7 +526,17 @@
             <p class="text-sm leading-relaxed text-ink-soft">
               <strong class="text-ink">La sede legale non è il luogo dell'attività.</strong>
               Un'impresa registrata in un comune può operare altrove: è il limite di
-              qualunque analisi basata sul registro delle imprese.
+              qualunque analisi basata sul registro delle imprese. Vale anche per gli
+              addetti, che sono attribuiti alla sede.
+            </p>
+          </li>
+          <li class="flex gap-3 rounded-xl border border-line bg-card p-4">
+            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gold"></span>
+            <p class="text-sm leading-relaxed text-ink-soft">
+              <strong class="text-ink">Sui comuni piccoli i rapporti ballano.</strong>
+              Celle di San Vito ha 30 imprese registrate: una iscrizione in più o in
+              meno muove il tasso di natalità di tre punti. Il filtro sulla soglia
+              minima serve esattamente a togliere questo rumore dalla scala colori.
             </p>
           </li>
         </ul>

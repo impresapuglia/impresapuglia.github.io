@@ -11,7 +11,7 @@
         </h2>
         <p class="mt-0.5 text-[11px] tabular-nums text-ink-dim">
           {{ comune.popolazione | number: '1.0-0' }} abitanti ·
-          {{ comune.superficie_kmq | number: '1.0-0' }} km²
+          codice ISTAT {{ comune.istat }}
         </p>
       </div>
       <button
@@ -30,19 +30,19 @@
       <!-- KPI -->
       <div class="grid grid-cols-3 gap-2">
         <div class="rounded-xl border border-line bg-surface p-3">
-          <p class="text-[10px] font-semibold uppercase tracking-wider2 text-ink-soft">Totale</p>
+          <p class="text-[10px] font-semibold uppercase tracking-wider2 text-ink-soft">Attive</p>
           <p class="mt-1.5 text-xl font-semibold tabular-nums text-ink">{{ comune.totale_imprese | number: '1.0-0' }}</p>
           <p class="text-[10px] text-ink-soft">imprese</p>
         </div>
         <div class="rounded-xl border border-line bg-surface p-3">
-          <p class="text-[10px] font-semibold uppercase tracking-wider2 text-ink-soft">Femminili</p>
-          <p class="mt-1.5 text-xl font-semibold tabular-nums text-brand">{{ pctFemminili | number: '1.1-1' }}%</p>
-          <p class="text-[10px] tabular-nums text-ink-soft">{{ comune.imprese_femminili | number: '1.0-0' }}</p>
+          <p class="text-[10px] font-semibold uppercase tracking-wider2 text-ink-soft">Addetti</p>
+          <p class="mt-1.5 text-xl font-semibold tabular-nums text-brand">{{ comune.addetti | number: '1.0-0' }}</p>
+          <p class="text-[10px] tabular-nums text-ink-soft">{{ comune.dimensione_media | number: '1.2-2' }} per impresa</p>
         </div>
         <div class="rounded-xl border border-line bg-surface p-3">
-          <p class="text-[10px] font-semibold uppercase tracking-wider2 text-ink-soft">Giovanili</p>
-          <p class="mt-1.5 text-xl font-semibold tabular-nums text-brand">{{ pctGiovanili | number: '1.1-1' }}%</p>
-          <p class="text-[10px] tabular-nums text-ink-soft">{{ comune.imprese_giovanili | number: '1.0-0' }}</p>
+          <p class="text-[10px] font-semibold uppercase tracking-wider2 text-ink-soft">Natalità</p>
+          <p class="mt-1.5 text-xl font-semibold tabular-nums text-brand">{{ comune.tasso_natalita | number: '1.1-1' }}%</p>
+          <p class="text-[10px] tabular-nums text-ink-soft">{{ comune.iscrizioni | number: '1.0-0' }} nuove</p>
         </div>
       </div>
 
@@ -60,17 +60,44 @@
         </span>
         <span
           class="rounded-md px-2 py-1 font-semibold tabular-nums"
-          [class]="trendAnnuo >= 0 ? 'bg-up/10 text-up' : 'bg-down/10 text-down'"
+          [class]="variazioneAnnua >= 0 ? 'bg-up/10 text-up' : 'bg-down/10 text-down'"
         >
-          {{ trendAnnuo >= 0 ? '▲' : '▼' }}
-          {{ trendAnnuo >= 0 ? '+' : '' }}{{ trendAnnuo | number: '1.1-1' }}% anno
+          {{ variazioneAnnua >= 0 ? '▲' : '▼' }}
+          {{ variazioneAnnua >= 0 ? '+' : '' }}{{ variazioneAnnua | number: '1.1-1' }}% anno
         </span>
+        <span
+          class="rounded-md px-2 py-1 font-semibold tabular-nums"
+          [class]="comune.saldo_demografico >= 0 ? 'bg-up/10 text-up' : 'bg-down/10 text-down'"
+        >
+          saldo {{ comune.saldo_demografico >= 0 ? '+' : '' }}{{ comune.saldo_demografico | number: '1.1-1' }}
+        </span>
+      </div>
+
+      <!-- Nati-mortalità -->
+      <div class="mt-4 rounded-xl border border-line p-3.5">
+        <h3 class="text-[10px] font-semibold uppercase tracking-wider2 text-ink-soft">
+          Nati-mortalità @if (meta().anno_natimortalita) {<span class="tabular-nums">{{ meta().anno_natimortalita }}</span>}
+        </h3>
+        <dl class="mt-2 grid grid-cols-3 gap-2 text-xs">
+          <div>
+            <dt class="text-ink-soft">Registrate</dt>
+            <dd class="font-semibold tabular-nums text-ink">{{ comune.registrate | number: '1.0-0' }}</dd>
+          </div>
+          <div>
+            <dt class="text-ink-soft">Iscrizioni</dt>
+            <dd class="font-semibold tabular-nums text-up">{{ comune.iscrizioni | number: '1.0-0' }}</dd>
+          </div>
+          <div>
+            <dt class="text-ink-soft">Cessazioni</dt>
+            <dd class="font-semibold tabular-nums text-down">{{ comune.cessazioni | number: '1.0-0' }}</dd>
+          </div>
+        </dl>
       </div>
 
       <!-- Settori -->
       <div class="mt-6">
         <h3 class="text-[11px] font-semibold uppercase tracking-wider2 text-ink-soft">
-          Imprese per settore
+          Imprese per settore @if (meta().anno_imprese) {<span class="tabular-nums">{{ meta().anno_imprese }}</span>}
         </h3>
         <p class="mb-2 mt-1 text-xs text-ink-soft">
           Dominante: <span class="font-semibold text-ink">{{ settoreDominanteLabel }}</span>
@@ -81,10 +108,18 @@
       <!-- Trend -->
       <div class="mt-6">
         <h3 class="text-[11px] font-semibold uppercase tracking-wider2 text-ink-soft">
-          Andamento trimestrale
+          Andamento annuale
         </h3>
-        <p class="mb-2 mt-1 text-xs text-ink-soft">Numero indice, Q1-2024 = 100</p>
-        <app-trend-chart [trend]="comune.trend_trimestrale" />
+        <p class="mb-2 mt-1 text-xs text-ink-soft">
+          Numero indice@if (annoBase) {, {{ annoBase }} = 100}. Variazione sul
+          periodo:
+          <span
+            class="font-semibold tabular-nums"
+            [class]="variazionePeriodo >= 0 ? 'text-up' : 'text-down'"
+            >{{ variazionePeriodo >= 0 ? '+' : '' }}{{ variazionePeriodo | number: '1.1-1' }}%</span
+          >
+        </p>
+        <app-trend-chart [trend]="comune.trend_annuale" />
       </div>
 
       <!-- Sintesi calcolata in locale -->
@@ -96,9 +131,12 @@
       </div>
 
       <p class="mt-5 border-t border-line pt-3 text-[10px] leading-relaxed text-ink-soft">
-        Confini comunali ISTAT. Valori imprenditoriali dimostrativi generati per lo
-        sviluppo — saranno sostituiti dai dati di dati.puglia.it tramite la pipeline
-        in <code class="font-mono">data-pipeline/</code>.
+        Confini comunali ISTAT. Imprese, addetti e settori
+        @if (meta().anno_imprese) {<span class="tabular-nums">{{ meta().anno_imprese }}</span>}
+        da Open Data Regione Puglia / IPRES; iscrizioni e cessazioni
+        @if (meta().anno_natimortalita) {<span class="tabular-nums">{{ meta().anno_natimortalita }}</span>}
+        dallo stesso portale; popolazione dal censimento ISTAT
+        {{ meta().anno_popolazione || '2021' }}.
       </p>
     </div>
   </section>
