@@ -7,8 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "data:mock": "python data-pipeline/00_generate_mock.py",
-    "data:pipeline": "python data-pipeline/01_download.py && python data-pipeline/02_clean.py && python data-pipeline/03_aggregate.py"
+    "data:pipeline": "python data-pipeline/01_download.py --solo-noti && python data-pipeline/01b_popolazione.py && python data-pipeline/02_clean.py && python data-pipeline/03_aggregate.py"
   },
   "private": true,
   "dependencies": {

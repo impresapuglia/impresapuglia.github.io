@@ -12,10 +12,9 @@ import {
 
 import {
   ComuneData,
-  pctFemminili,
-  pctGiovanili,
   settoreDominante,
-  trendAnnuo,
+  variazioneAnnua,
+  variazionePeriodo,
 } from '../../models/comune.model';
 import { SETTORE_LABEL, SettoreKey } from '../../models/impresa.model';
 import { DataService } from '../../services/data.service';
@@ -25,8 +24,8 @@ import { TrendChartComponent } from '../charts/trend-chart.component';
 
 /**
  * FEATURE 2 — Pannello di dettaglio del comune selezionato.
- * KPI, distribuzione settoriale, trend trimestrale e sintesi calcolata
- * in locale (nessuna chiamata esterna).
+ * KPI, distribuzione settoriale, serie annuale e sintesi calcolata in locale
+ * (nessuna chiamata esterna).
  */
 @Component({
   selector: 'app-comune-panel',
@@ -46,21 +45,17 @@ export class ComunePanelComponent implements OnChanges {
   /** Testo della sintesi del comune corrente. */
   readonly sintesi = signal<string | null>(null);
 
+  readonly meta = this.data.meta;
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['comune']) {
-      this.sintesi.set(this.comune ? this.sintesiService.perComune(this.comune) : null);
+      this.sintesi.set(
+        this.comune ? this.sintesiService.perComune(this.comune) : null,
+      );
     }
   }
 
   // -------- metriche derivate esposte al template --------
-
-  get pctFemminili(): number {
-    return this.comune ? pctFemminili(this.comune) : 0;
-  }
-
-  get pctGiovanili(): number {
-    return this.comune ? pctGiovanili(this.comune) : 0;
-  }
 
   get settoreDominante(): SettoreKey | null {
     return this.comune ? settoreDominante(this.comune) : null;
@@ -71,8 +66,14 @@ export class ComunePanelComponent implements OnChanges {
     return s ? SETTORE_LABEL[s] : '—';
   }
 
-  get trendAnnuo(): number {
-    return this.comune ? trendAnnuo(this.comune) : 0;
+  /** Variazione delle imprese attive fra gli ultimi due anni. */
+  get variazioneAnnua(): number {
+    return this.comune ? variazioneAnnua(this.comune) : 0;
+  }
+
+  /** Variazione su tutta la serie disponibile. */
+  get variazionePeriodo(): number {
+    return this.comune ? variazionePeriodo(this.comune) : 0;
   }
 
   /** Scarto percentuale della densita rispetto alla media regionale. */
@@ -80,5 +81,11 @@ export class ComunePanelComponent implements OnChanges {
     const media = this.data.statistiche().densitaMedia;
     if (!this.comune || !media) return 0;
     return ((this.comune.densita_imprenditoriale - media) / media) * 100;
+  }
+
+  /** Primo anno della serie, per l'etichetta della base indice. */
+  get annoBase(): number | null {
+    const t = this.comune?.trend_annuale;
+    return t && t.length ? t[0].anno : null;
   }
 }

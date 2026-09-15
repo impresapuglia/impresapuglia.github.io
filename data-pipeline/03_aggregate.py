@@ -1,44 +1,56 @@
 """
 03_aggregate.py — costruisce src/assets/data/imprese.json.
 
-Input : clean/osservazioni.csv (prodotto da 02_clean.py)
-        src/assets/data/puglia.geojson (anagrafica, centroidi)
-Output: src/assets/data/imprese.json nel formato consumato da DataService.
+Input : clean/osservazioni.csv  (da 02_clean.py)
+        clean/popolazione.csv   (da 01b_popolazione.py)
+        src/assets/data/puglia.geojson (anagrafica e centroidi)
+Output: src/assets/data/imprese.json, nel formato consumato da DataService.
 
-Cosa calcola per ogni comune:
-  - totale imprese = somma delle osservazioni del tema "imprese" nell'ultimo
-    periodo disponibile;
-  - imprese femminili / giovanili dai temi omonimi (0 se il dataset non
-    copre quella provincia);
-  - densita imprenditoriale = imprese ogni 1.000 abitanti;
-  - distribuzione per settore;
-  - serie storica sugli ultimi otto periodi disponibili;
-  - lat/lng dal centroide del poligono comunale.
+Per ogni comune:
+  totale_imprese          imprese attive nell'ultimo anno disponibile (2024)
+  addetti                 addetti alle imprese attive, stesso anno
+  dimensione_media        addetti / imprese attive
+  settori                 le 21 sezioni ATECO riaggregate nei 7 settori dell'app
+  popolazione             censimento ISTAT 2021
+  densita_imprenditoriale imprese attive ogni 1.000 abitanti
+  registrate              imprese registrate (stock) nell'ultimo anno
+                          disponibile della nati-mortalita (2023)
+  iscrizioni, cessazioni  stesso anno
+  tasso_natalita          iscrizioni / registrate * 100
+  saldo_demografico       (iscrizioni - cessazioni) / registrate * 100
+  trend_annuale           un punto per anno, 2020-2024, con imprese e addetti
+  lat, lng                centroide del poligono comunale
 
-I comuni presenti nel GeoJSON ma assenti dai dataset restano nel file con
-valori a zero, cosi la mappa non ha buchi: nel frontend risultano nella
-classe piu chiara della scala.
+Solo libreria standard: nessuna dipendenza, nessuna differenza di
+comportamento fra pandas 2.x e 3.x.
+
+Nota sugli anni di riferimento: imprese e addetti arrivano fino al 2024, la
+nati-mortalita si ferma al 2023. Sono due rilevazioni diverse della stessa
+fonte camerale e non vanno divise fra loro; l'app le mostra etichettate con il
+proprio anno.
 
 Uso: python 03_aggregate.py
 """
 
 from __future__ import annotations
 
+import csv
 import json
 import sys
-from pathlib import Path
+from collections import defaultdict
 
-import pandas as pd
-
-from config import CLEAN, GEOJSON, OUTPUT_JSON, SETTORI
-
-# Popolazione: se non e disponibile un dataset demografico si usa questo file
-# opzionale (comune;popolazione). Senza di esso la densita non viene calcolata.
-POPOLAZIONE_CSV = CLEAN / "popolazione.csv"
+from config import (
+    ANNO_NATIMORTALITA,
+    ANNO_POPOLAZIONE,
+    CLEAN,
+    GEOJSON,
+    OUTPUT_JSON,
+    SETTORI,
+)
 
 
 def centroide(geometry: dict) -> tuple[float, float]:
-    """Centroide area-pesato dell'anello esterno piu grande."""
+    """Centroide area-pesato dell'anello esterno piu grande. Ritorna (lng, lat)."""
     if geometry["type"] == "Polygon":
         anelli = [geometry["coordinates"][0]]
     else:
@@ -62,136 +74,157 @@ def centroide(geometry: dict) -> tuple[float, float]:
             migliore = (cx / (6 * a), cy / (6 * a))
 
     if migliore is None:
-        pts = anelli[0]
-        return (sum(p[0] for p in pts) / len(pts),
-                sum(p[1] for p in pts) / len(pts))
+        punti = anelli[0]
+        return (sum(p[0] for p in punti) / len(punti),
+                sum(p[1] for p in punti) / len(punti))
     return migliore
 
 
-def ordina_periodi(periodi: list[str]) -> list[str]:
-    """Ordina "Q3-2025" / "2021" cronologicamente."""
-    def chiave(p: str) -> tuple[int, int]:
-        p = str(p)
-        if p.startswith("Q") and "-" in p:
-            q, anno = p[1:].split("-", 1)
-            return (int(anno) if anno.isdigit() else 0,
-                    int(q) if q.isdigit() else 0)
-        return (int(p) if p.isdigit() else 0, 4)
-    return sorted(set(periodi), key=chiave)
-
-
 def carica_popolazione() -> dict[str, int]:
-    if not POPOLAZIONE_CSV.exists():
+    percorso = CLEAN / "popolazione.csv"
+    if not percorso.exists():
         return {}
-    df = pd.read_csv(POPOLAZIONE_CSV, dtype=str)
-    colonne = {c.lower().strip(): c for c in df.columns}
-    col_istat = colonne.get("istat")
-    col_pop = colonne.get("popolazione")
-    if not col_istat or not col_pop:
-        return {}
-    return {
-        str(r[col_istat]).zfill(6): int(float(r[col_pop]))
-        for _, r in df.iterrows()
-        if str(r[col_pop]).replace(".", "").isdigit()
-    }
+    fuori: dict[str, int] = {}
+    with percorso.open(encoding="utf-8-sig") as fh:
+        for riga in csv.DictReader(fh):
+            codice = (riga.get("istat") or "").strip().zfill(6)
+            valore = (riga.get("popolazione") or "").strip()
+            if codice and valore.isdigit():
+                fuori[codice] = int(valore)
+    return fuori
 
 
 def main() -> int:
     sorgente = CLEAN / "osservazioni.csv"
     if not sorgente.exists():
-        print("clean/osservazioni.csv mancante: esegui prima 02_clean.py")
+        print("! clean/osservazioni.csv mancante: esegui prima 02_clean.py")
         return 1
     if not GEOJSON.exists():
-        print(f"GeoJSON mancante: {GEOJSON}")
+        print(f"! GeoJSON mancante: {GEOJSON}")
         return 1
 
-    oss = pd.read_csv(sorgente, dtype={"istat": str})
-    oss["istat"] = oss["istat"].str.zfill(6)
-    geo = json.loads(GEOJSON.read_text(encoding="utf-8"))
+    # (tema, istat, anno, voce) -> valore
+    valori: dict[tuple[str, str, int, str], int] = {}
+    anni_per_tema: dict[str, set[int]] = defaultdict(set)
+    with sorgente.open(encoding="utf-8-sig") as fh:
+        for riga in csv.DictReader(fh):
+            tema = riga["tema"]
+            istat = riga["istat"].zfill(6)
+            anno = int(riga["anno"])
+            valori[(tema, istat, anno, riga["voce"])] = int(riga["valore"])
+            anni_per_tema[tema].add(anno)
+
+    anni_imprese = sorted(anni_per_tema.get("imprese", set()))
+    anni_nm = sorted(anni_per_tema.get("natimortalita", set()))
+    if not anni_imprese:
+        print("! nessuna osservazione con tema 'imprese'")
+        return 1
+
+    anno_corrente = anni_imprese[-1]
+    anno_nm = anni_nm[-1] if anni_nm else ANNO_NATIMORTALITA
+    print(f"Imprese e addetti: {anni_imprese[0]}-{anno_corrente} "
+          f"({len(anni_imprese)} anni)")
+    print(f"Nati-mortalita: ultimo anno {anno_nm}")
+
     popolazione = carica_popolazione()
+    if not popolazione:
+        print("! manca clean/popolazione.csv: esegui 01b_popolazione.py, "
+              "altrimenti la densita resta a 0 e la mappa sara piatta")
 
-    periodi = ordina_periodi(oss["periodo"].astype(str).tolist())
-    ultimo = periodi[-1] if periodi else None
-    ultimi_otto = periodi[-8:]
-    print(f"Periodi disponibili: {len(periodi)} (ultimo: {ultimo})")
+    geo = json.loads(GEOJSON.read_text(encoding="utf-8"))
 
-    imprese = oss[oss["tema"] == "imprese"]
-    femminili = oss[oss["tema"] == "femminili"]
-    giovanili = oss[oss["tema"] == "giovanili"]
+    def somma(tema: str, istat: str, anno: int) -> int:
+        return sum(valori.get((tema, istat, anno, s), 0) for s in SETTORI)
 
-    # Indici pre-aggregati per lookup veloce.
-    tot_per_periodo = (
-        imprese.groupby(["istat", "periodo"])["valore"].sum().to_dict()
-    )
-    fem_per_periodo = (
-        femminili.groupby(["istat", "periodo"])["valore"].sum().to_dict()
-    )
-    gio_ultimo = (
-        giovanili[giovanili["periodo"].astype(str) == str(ultimo)]
-        .groupby("istat")["valore"].sum().to_dict()
-    )
-    settori_ultimo = (
-        imprese[imprese["periodo"].astype(str) == str(ultimo)]
-        .groupby(["istat", "settore"])["valore"].sum().to_dict()
-    )
+    risultato: list[dict] = []
+    senza_imprese: list[str] = []
+    senza_popolazione: list[str] = []
+    senza_nm: list[str] = []
 
-    risultato = []
-    senza_dati = 0
+    for feature in geo["features"]:
+        props = feature["properties"]
+        istat = str(props["istat"]).zfill(6)
+        lng, lat = centroide(feature["geometry"])
 
-    for feat in geo["features"]:
-        p = feat["properties"]
-        istat = str(p["istat"]).zfill(6)
-        lng, lat = centroide(feat["geometry"])
-
-        totale = int(tot_per_periodo.get((istat, ultimo), 0))
+        totale = somma("imprese", istat, anno_corrente)
+        addetti = somma("addetti", istat, anno_corrente)
         if totale == 0:
-            senza_dati += 1
+            senza_imprese.append(props["nome"])
 
-        fem = int(fem_per_periodo.get((istat, ultimo), 0))
-        gio = int(gio_ultimo.get(istat, 0))
         pop = popolazione.get(istat, 0)
-        densita = round(totale / pop * 1000, 1) if pop else 0.0
+        if not pop:
+            senza_popolazione.append(props["nome"])
 
-        settori = {
-            s: int(settori_ultimo.get((istat, s), 0)) for s in SETTORI
-        }
-
-        trend = [
-            {
-                "trimestre": str(per),
-                "totale": int(tot_per_periodo.get((istat, per), 0)),
-                "femminili": int(fem_per_periodo.get((istat, per), 0)),
-            }
-            for per in ultimi_otto
-        ]
+        registrate = valori.get(("natimortalita", istat, anno_nm, "registrate"), 0)
+        iscrizioni = valori.get(("natimortalita", istat, anno_nm, "iscrizioni"), 0)
+        cessazioni = valori.get(("natimortalita", istat, anno_nm, "cessazioni"), 0)
+        if registrate == 0:
+            senza_nm.append(props["nome"])
 
         risultato.append({
-            "comune": p["nome"],
-            "provincia": p["prov"],
+            "comune": props["nome"],
+            "provincia": props["prov"],
             "istat": istat,
             "popolazione": pop,
-            "superficie_kmq": 0.0,
             "totale_imprese": totale,
-            "imprese_femminili": fem,
-            "imprese_giovanili": gio,
-            "densita_imprenditoriale": densita,
-            "settori": settori,
-            "trend_trimestrale": trend,
+            "addetti": addetti,
+            "dimensione_media": round(addetti / totale, 2) if totale else 0.0,
+            "densita_imprenditoriale": round(totale / pop * 1000, 1) if pop else 0.0,
+            "registrate": registrate,
+            "iscrizioni": iscrizioni,
+            "cessazioni": cessazioni,
+            "tasso_natalita": round(iscrizioni / registrate * 100, 2) if registrate else 0.0,
+            "saldo_demografico": round((iscrizioni - cessazioni) / registrate * 100, 2) if registrate else 0.0,
+            "settori": {
+                s: valori.get(("imprese", istat, anno_corrente, s), 0)
+                for s in SETTORI
+            },
+            "trend_annuale": [
+                {
+                    "anno": anno,
+                    "imprese": somma("imprese", istat, anno),
+                    "addetti": somma("addetti", istat, anno),
+                }
+                for anno in anni_imprese
+            ],
             "lat": round(lat, 4),
             "lng": round(lng, 4),
         })
 
     risultato.sort(key=lambda c: c["comune"])
+
+    # Metadati: l'app li mostra nella guida invece di avere gli anni scritti a
+    # mano nei template, che è come si finisce con una data sbagliata in pagina.
+    meta = {
+        "anno_imprese": anno_corrente,
+        "anni_trend": anni_imprese,
+        "anno_natimortalita": anno_nm,
+        "anno_popolazione": ANNO_POPOLAZIONE,
+        "comuni": len(risultato),
+    }
     OUTPUT_JSON.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_JSON.write_text(
-        json.dumps(risultato, ensure_ascii=False), encoding="utf-8"
+        json.dumps({"meta": meta, "comuni": risultato}, ensure_ascii=False),
+        encoding="utf-8",
     )
 
-    print(f"Scritti {len(risultato)} comuni in {OUTPUT_JSON}")
-    print(f"Comuni senza dati nell'ultimo periodo: {senza_dati}")
-    if not popolazione:
-        print("ATTENZIONE: manca clean/popolazione.csv (colonne istat,popolazione):")
-        print("  la densita imprenditoriale resta a 0 e la mappa sara piatta.")
+    totale_regionale = sum(c["totale_imprese"] for c in risultato)
+    addetti_regionali = sum(c["addetti"] for c in risultato)
+    print(f"\n-> {OUTPUT_JSON.name}: {len(risultato)} comuni")
+    print(f"   imprese attive {anno_corrente}: {totale_regionale:,}".replace(",", "."))
+    print(f"   addetti {anno_corrente}:        {addetti_regionali:,}".replace(",", "."))
+    print(f"   popolazione {ANNO_POPOLAZIONE}:     "
+          f"{sum(c['popolazione'] for c in risultato):,}".replace(",", "."))
+
+    for etichetta, elenco in (
+        ("senza imprese", senza_imprese),
+        ("senza popolazione", senza_popolazione),
+        ("senza nati-mortalita", senza_nm),
+    ):
+        if elenco:
+            print(f"   ! {len(elenco)} comuni {etichetta}: "
+                  f"{', '.join(elenco[:8])}"
+                  f"{' …' if len(elenco) > 8 else ''}")
     return 0
 
 

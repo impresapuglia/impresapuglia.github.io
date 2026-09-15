@@ -1,4 +1,7 @@
-pandas>=2.0
-unidecode>=1.3
+# La pipeline usa solo la libreria standard di Python (urllib, csv, json).
+# Niente pandas: gli script non dipendono da API che cambiano fra 2.x e 3.x, e
+# su una macchina nuova `python 01_download.py` funziona senza installare nulla.
+#
+# openpyxl serve solo se si vogliono ispezionare le risorse .xlsx del portale.
+# I tre dataset collegati all'app sono tutti CSV, quindi e opzionale.
 openpyxl>=3.1
-xlrd>=2.0

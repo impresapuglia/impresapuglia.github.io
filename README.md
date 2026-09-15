@@ -29,48 +29,95 @@ non carica tile da nessun provider.
 
 ## Stato dei dati
 
-| Cosa | Stato |
+Tutti i valori dell'app sono **reali** e provengono da dataset pubblici.
+
+| File | Contenuto | Fonte |
+| --- | --- | --- |
+| `src/assets/data/puglia.geojson` | confini dei 257 comuni pugliesi, semplificati al 18% con mapshaper | ISTAT, via [openpolis/geojson-italy](https://github.com/openpolis/geojson-italy) |
+| `src/assets/data/imprese.json` | imprese attive, addetti, settori (2020–2024), iscrizioni e cessazioni (2023), popolazione (2021) | Open Data Regione Puglia / IPRES + censimento ISTAT |
+
+Numeri regionali che il file contiene, come controllo rapido:
+**325.425** imprese attive 2024, **1.017.298** addetti, **3.926.931** abitanti.
+
+Una verifica che vale la pena conoscere: lo stock di imprese attive 2023
+ricavato dalla serie settoriale coincide **esattamente** con la colonna
+`Attive` del dataset di nati-mortalità, che è una rilevazione distinta. Due
+file diversi, lo stesso numero.
+
+### Cosa c'è e cosa no
+
+| Grandezza | Stato |
 | --- | --- |
-| `src/assets/data/puglia.geojson` | **reale** — confini dei 257 comuni pugliesi (ISTAT, via openpolis/geojson-italy), semplificati al 18% con mapshaper |
-| `src/assets/data/imprese.json` | **dimostrativo** — generato da `data-pipeline/00_generate_mock.py` |
+| Imprese attive, addetti, 7 settori | reale, 257/257 comuni, 2020–2024 |
+| Densità imprenditoriale | reale (popolazione: censimento ISTAT 2021) |
+| Dimensione media d'impresa | reale (addetti / imprese attive) |
+| Tasso di natalità e saldo demografico | reale, 257/257 comuni, 2023 |
+| Imprese femminili e giovanili | **non disponibili** — vedi sotto |
 
-I valori imprenditoriali sono sintetici e deterministici (seed fisso): servono a
-sviluppare mappa e grafici prima del collegamento ai dati reali. Sono plausibili
-nell'ordine di grandezza ma **non vanno citati come dati ufficiali**. La UI lo
-dichiara nel pannello di dettaglio.
+Sul portale il dettaglio per genere ed età a livello comunale esiste solo nelle
+serie trimestrali della Camera di Commercio di Lecce: una provincia su sei,
+ferme al 2020. Colorare la mappa su quel dato lascerebbe spenti 161 comuni su
+257, quindi l'app non lo mostra affatto invece di mostrarlo a metà. Al suo posto
+usa due indicatori che esistono per tutti i comuni: **dimensione media
+d'impresa** e **tasso di natalità d'impresa**.
 
-Per rigenerarli:
-
-```bash
-npm run data:mock
-```
-
-### Passare ai dati reali
-
-La pipeline in `data-pipeline/` attinge al portale CKAN della Regione Puglia
-([dati.puglia.it](https://dati.puglia.it/ckan)):
+### Eseguire la pipeline
 
 ```bash
-pip install -r data-pipeline/requirements.txt
-python data-pipeline/01_download.py --dry-run   # elenca cosa scaricherebbe
-python data-pipeline/01_download.py             # -> data-pipeline/raw/
-python data-pipeline/02_clean.py                # -> data-pipeline/clean/osservazioni.csv
-python data-pipeline/03_aggregate.py            # -> src/assets/data/imprese.json
+python data-pipeline/01_download.py --solo-noti   # -> data-pipeline/raw/
+python data-pipeline/01b_popolazione.py           # -> clean/popolazione.csv
+python data-pipeline/02_clean.py                  # -> clean/osservazioni.csv
+python data-pipeline/03_aggregate.py              # -> src/assets/data/imprese.json
 ```
 
-Oppure `npm run data:pipeline` per i tre passi in fila.
+Oppure `npm run data:pipeline` per i quattro passi in fila. Gli script usano
+**solo la libreria standard** di Python: nessun pandas, nessuna differenza di
+comportamento fra versioni, nessuna installazione necessaria (`openpyxl` in
+`requirements.txt` serve solo a ispezionare gli `.xlsx` del portale).
 
 Note operative:
 
-- I dataset comunali su imprese femminili e giovanili sul portale sono
-  pubblicati **per provincia e per trimestre**, e la copertura più ricca è
-  quella della Camera di Commercio di Lecce. Le province non coperte usciranno
-  con valori a zero: `02_clean.py` segnala i comuni non riconosciuti.
-- Per la densità imprenditoriale serve la popolazione comunale. Metti un
-  `data-pipeline/clean/popolazione.csv` con colonne `istat,popolazione`
-  (fonte ISTAT), altrimenti `03_aggregate.py` lascia la densità a 0.
+- **Usa sempre `--solo-noti`.** Senza quel flag `01_download.py` interroga
+  `package_search` di CKAN, che spezza la query in token e li combina in OR:
+  la ricerca sulla nati-mortalità riporta una trentina di tavole sulle
+  assunzioni perché contengono "imprese" e "pugliesi". Il risultato sono ~1400
+  file, quasi tutti inutili, con URL su `bit.ly` e Google Sheets e collisioni
+  di nome. Con `--solo-noti` si scaricano 17 file dai quattro dataset
+  verificati a mano.
+- `02_clean.py` usa solo i tre dataset dichiarati in `config.SORGENTI` e salta
+  gli altri, elencati con il motivo in `config.IGNORATI`. **In `SORGENTI`
+  l'ordine conta:** `imprese-attive-dal-2020-al-2024` è una sottostringa di
+  `addetti-alle-imprese-attive-dal-2020-al-2024`, quindi il pattern degli
+  addetti va confrontato per primo.
 - `01_download.py` interroga l'API CKAN invece di usare URL fissi, perché gli
   indirizzi delle risorse sul portale cambiano.
+
+### Le anomalie che la pulizia corregge
+
+Tutte verificate sul dato reale, tutte silenziose se non gestite:
+
+- nel 2022 i **dieci comuni della BAT compaiono due volte**, una sotto la
+  provincia storica (BARI, FOGGIA) e una sotto BARLETTA-ANDRIA-TRANI, con
+  valori identici: senza deduplica su `(istat, anno)` quei comuni avrebbero il
+  doppio delle imprese. Lo script avvisa se i due valori *non* coincidono,
+  perché in quel caso la scelta non sarebbe innocua;
+- nel 2022 e nel 2024 i nomi dei comuni hanno uno **spazio iniziale**, che
+  basta a far fallire il join (il conteggio grezzo dei nomi distinti dà 512
+  invece di 257);
+- `CASTELLUCCIO` nel 2020–2021 diventa `CASTELLUCCIO VALMAGGIORE` dal 2022, e
+  non va confuso con `CASTELLUCCIO DEI SAURI`, che è un altro comune presente
+  per conto suo;
+- `NARDO'`, `PATU'`, `SECLI'` hanno l'accento troncato in apostrofo: gestiti da
+  una regola generale, non da una lista di alias, perché nessun comune italiano
+  ha un nome che finisce davvero per apostrofo;
+- **4305 celle contengono `-`** e 1011 sono vuote: significano zero, ma fanno
+  esplodere qualunque `int()` ingenuo;
+- righe di totale in fondo alle tabelle, scartate via `config.NON_COMUNI`.
+
+Il join fra confini e dati è sul **codice ISTAT**, mai sul nome. `02_clean.py`
+elenca a video ogni comune che non riesce a riconciliare invece di scartarlo in
+silenzio: sull'ultima esecuzione l'elenco è vuoto e la copertura è 257/257 su
+tutti i temi e tutti gli anni.
 
 ---
 
@@ -83,7 +130,7 @@ src/app/
 │   ├── guida/               guida alla lettura e fonti dei dati
 │   ├── map/                 mappa choropleth Leaflet
 │   ├── comune-panel/        pannello dettaglio comune
-│   ├── charts/              grafici Chart.js (barre settori, indice trend)
+│   ├── charts/              grafici Chart.js (barre settori, indice trend annuale)
 │   ├── chatbot/             segnaposto assistente ("l'AI arriverà presto")
 │   ├── logo/                marchio inline
 │   ├── filter-panel/        filtri sidebar
@@ -186,9 +233,13 @@ la mappa uscirebbe monocroma.
 La distribuzione si calcola sui comuni che superano i filtri, non sull'intera
 regione: filtrando una provincia la scala si ricalcola e resta leggibile.
 
-I toggle "solo femminili" / "solo giovanili" cambiano la metrica di
-colorazione (quota % invece della densità); la soglia minima non nasconde i
-comuni ma li spegne, fuori dalla scala colori.
+Il selettore nei filtri cambia la metrica di colorazione fra **densità**,
+**dimensione media** (addetti per impresa) e **natalità** (nuove iscrizioni
+ogni 100 imprese registrate). È una scelta fra tre e non tre interruttori:
+due scale colori sovrapposte sulla stessa mappa non sarebbero leggibili. La
+soglia minima non nasconde i comuni ma li spegne, fuori dalla scala colori —
+serve a togliere il rumore dei comuni piccolissimi, dove un rapporto oscilla
+molto (Celle di San Vito ha 30 imprese registrate).
 
 ### Mappa opportunità
 
@@ -208,12 +259,14 @@ torta: sette fette sono troppe da confrontare a occhio. Un solo colore, perché
 il settore è già scritto sull'asse — la lunghezza porta il dato, il colore non
 deve ricodificarlo. I valori sono etichettati direttamente in fondo a ogni barra.
 
-**Andamento trimestrale** è in numero indice con base 100 al primo trimestre.
-In valore assoluto le due serie stanno su ordini di grandezza diversi (le
-femminili sono circa un quarto del totale) e su un asse solo si schiacciano
-entrambe in due rette piatte; due assi separati sarebbero peggio, perché
-farebbero sembrare confrontabili scale che non lo sono. Ribasare a 100 mette le
-serie sulla stessa scala, quella delle variazioni.
+**Andamento annuale** (2020–2024) è in numero indice con base 100 al primo
+anno. In valore assoluto le due serie — imprese attive e addetti — stanno su
+ordini di grandezza diversi (gli addetti sono circa il triplo) e su un asse solo
+si schiacciano entrambe in due rette piatte; due assi separati sarebbero peggio,
+perché farebbero sembrare confrontabili scale che non lo sono. Ribasare a 100 le
+mette sulla stessa scala, quella delle variazioni — ed è lì che si vede la cosa
+interessante: se gli addetti crescono mentre le imprese calano, il tessuto si
+sta concentrando.
 
 ## Sintesi del comune
 
@@ -241,7 +294,10 @@ corretta è una funzione serverless in `api/` che tiene la chiave lato server.
 ## Fonti
 
 - Confini comunali: ISTAT, tramite [openpolis/geojson-italy](https://github.com/openpolis/geojson-italy)
-- Dati imprenditoriali: [Open Data Regione Puglia](https://dati.puglia.it/ckan) — dataset
-  "Imprese per comune e settore di attività economica" e serie trimestrali della
-  Camera di Commercio di Lecce (CC BY 4.0)
-- Basemap: OpenStreetMap / CARTO
+- Imprese attive, addetti e settori 2020–2024: [Open Data Regione Puglia](https://dati.puglia.it/ckan) —
+  dataset "Imprese attive e addetti in Puglia a livello comunale", pubblicato da
+  IPRES (CC BY 4.0)
+- Iscrizioni e cessazioni: stesso portale, dataset "Nati-mortalità delle imprese
+  pugliesi" (CC BY 4.0)
+- Popolazione comunale: ISTAT, Censimento permanente 2021
+- Basemap: nessuno — la mappa non carica tile da alcun provider

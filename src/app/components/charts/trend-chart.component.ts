@@ -22,7 +22,7 @@ import {
   TooltipItem,
 } from 'chart.js';
 
-import { TrendTrimestrale } from '../../models/impresa.model';
+import { TrendAnnuale } from '../../models/impresa.model';
 import { TemaService } from '../../services/tema.service';
 
 Chart.register(
@@ -43,22 +43,22 @@ const NF1 = new Intl.NumberFormat('it-IT', {
 });
 
 /**
- * Andamento su otto trimestri, in numero indice con base 100 al primo
- * trimestre della serie.
+ * Andamento annuale, in numero indice con base 100 al primo anno della serie.
  *
- * In valore assoluto le due serie stanno su ordini di grandezza diversi
- * (le femminili sono circa un quarto del totale) e un solo asse le
- * schiaccerebbe entrambe in due rette piatte; due assi separati sarebbero
- * peggio, perché farebbero sembrare confrontabili scale che non lo sono.
- * Ribasare a 100 mette le due serie sulla stessa scala — quella delle
- * variazioni — che è poi la cosa che interessa davvero.
+ * In valore assoluto le due serie stanno su ordini di grandezza diversi (gli
+ * addetti sono circa il triplo delle imprese) e un solo asse le schiaccerebbe
+ * entrambe in due rette piatte; due assi separati sarebbero peggio, perché
+ * farebbero sembrare confrontabili scale che non lo sono. Ribasare a 100 mette
+ * le due serie sulla stessa scala — quella delle variazioni — che è poi la
+ * cosa che interessa: se gli addetti crescono mentre le imprese calano, il
+ * tessuto si sta concentrando, e su due assi assoluti non si vedrebbe.
  */
 @Component({
   selector: 'app-trend-chart',
   standalone: true,
   template: `
     <div class="relative h-56 w-full">
-      <canvas #canvas aria-label="Andamento trimestrale delle imprese, base 100"></canvas>
+      <canvas #canvas aria-label="Andamento annuale di imprese e addetti, base 100"></canvas>
     </div>
   `,
 })
@@ -68,7 +68,7 @@ export class TrendChartComponent implements AfterViewInit, OnChanges, OnDestroy 
   @ViewChild('canvas', { static: true })
   canvas!: ElementRef<HTMLCanvasElement>;
 
-  @Input({ required: true }) trend!: TrendTrimestrale[];
+  @Input({ required: true }) trend!: TrendAnnuale[];
 
   private chart?: Chart<'line'>;
 
@@ -131,7 +131,8 @@ export class TrendChartComponent implements AfterViewInit, OnChanges, OnDestroy 
               label: (item: TooltipItem<'line'>) => {
                 const assoluti = this.assoluti(item.datasetIndex);
                 const v = assoluti[item.dataIndex] ?? 0;
-                return ` ${item.dataset.label}: ${NF1.format(item.parsed.y)} (${NF.format(v)} imprese)`;
+                const unita = item.datasetIndex === 0 ? 'imprese' : 'addetti';
+                return ` ${item.dataset.label}: ${NF1.format(item.parsed.y)} (${NF.format(v)} ${unita})`;
               },
             },
           },
@@ -166,8 +167,8 @@ export class TrendChartComponent implements AfterViewInit, OnChanges, OnDestroy 
   private assoluti(dataset: number): number[] {
     const serie = this.trend ?? [];
     return dataset === 0
-      ? serie.map((t) => t.totale)
-      : serie.map((t) => t.femminili);
+      ? serie.map((t) => t.imprese)
+      : serie.map((t) => t.addetti);
   }
 
   /** Ribasa una serie a 100 sul primo valore non nullo. */
@@ -180,11 +181,11 @@ export class TrendChartComponent implements AfterViewInit, OnChanges, OnDestroy 
   private datiGrafico() {
     const serie = this.trend ?? [];
     return {
-      labels: serie.map((t) => t.trimestre),
+      labels: serie.map((t) => String(t.anno)),
       datasets: [
         {
-          label: 'Totale',
-          data: this.indice(serie.map((t) => t.totale)),
+          label: 'Imprese attive',
+          data: this.indice(serie.map((t) => t.imprese)),
           borderColor: this.tema.colore('brand'),
           backgroundColor: this.tema.colore('brand', 0.1),
           borderWidth: 2,
@@ -196,8 +197,8 @@ export class TrendChartComponent implements AfterViewInit, OnChanges, OnDestroy 
           fill: false,
         },
         {
-          label: 'Femminili',
-          data: this.indice(serie.map((t) => t.femminili)),
+          label: 'Addetti',
+          data: this.indice(serie.map((t) => t.addetti)),
           borderColor: this.tema.colore('gold'),
           backgroundColor: this.tema.colore('gold', 0.1),
           borderWidth: 2,

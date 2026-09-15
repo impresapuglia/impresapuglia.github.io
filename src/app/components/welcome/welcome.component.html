@@ -43,7 +43,7 @@
         </span>
         <span class="min-w-0">
           <span class="block text-base font-semibold text-white">Esplora la mappa</span>
-          <span class="block text-xs text-white/70">Densità, imprese femminili e giovanili, filtri per provincia</span>
+          <span class="block text-xs text-white/70">Densità, dimensione media, natalità d'impresa · filtri per provincia</span>
         </span>
       </a>
 
@@ -73,23 +73,29 @@
           <dd class="mt-1 text-2xl font-semibold tabular-nums text-white">{{ statistiche().comuni }}</dd>
         </div>
         <div>
-          <dt class="text-[10px] font-semibold uppercase tracking-wider2 text-ink-dim">Imprese</dt>
+          <dt class="text-[10px] font-semibold uppercase tracking-wider2 text-ink-dim">Imprese attive</dt>
           <dd class="mt-1 text-2xl font-semibold tabular-nums text-white">
             {{ statistiche().totaleImprese | number: '1.0-0' }}
           </dd>
         </div>
         <div>
-          <dt class="text-[10px] font-semibold uppercase tracking-wider2 text-ink-dim">Province</dt>
-          <dd class="mt-1 text-2xl font-semibold tabular-nums text-white">6</dd>
+          <dt class="text-[10px] font-semibold uppercase tracking-wider2 text-ink-dim">Addetti</dt>
+          <dd class="mt-1 text-2xl font-semibold tabular-nums text-white">
+            {{ statistiche().totaleAddetti | number: '1.0-0' }}
+          </dd>
         </div>
       </dl>
     }
 
-    <p class="mt-8 rounded-xl border border-gold-2/25 bg-gold-2/5 px-4 py-3 text-xs leading-relaxed text-gold-pale">
-      <strong class="font-semibold">Nota sui dati.</strong> I confini comunali sono reali (ISTAT).
-      I valori imprenditoriali attualmente visualizzati sono <strong class="font-semibold">dimostrativi</strong>:
-      plausibili nell'ordine di grandezza, ma non ufficiali. Il collegamento ai dataset
-      di dati.puglia.it è descritto nella guida.
+    <p class="mt-8 rounded-xl border border-mint/25 bg-mint/5 px-4 py-3 text-xs leading-relaxed text-mint-pale">
+      <strong class="font-semibold">Nota sui dati.</strong> Tutti i numeri sono reali e
+      provengono da dataset pubblici: imprese, addetti e settori
+      @if (meta().anno_imprese) {del <span class="tabular-nums">{{ meta().anno_imprese }}</span>}
+      dalla serie comunale pubblicata da IPRES per la Regione Puglia su dati.puglia.it,
+      iscrizioni e cessazioni dal dataset di nati-mortalità, popolazione dal censimento
+      ISTAT <span class="tabular-nums">{{ meta().anno_popolazione || 2021 }}</span>,
+      confini dai limiti amministrativi ISTAT. Fonti, anni e limiti sono elencati uno
+      per uno nella guida.
     </p>
   </div>
 </div>

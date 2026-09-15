@@ -27,13 +27,6 @@ import {
 import { MapService, PUGLIA_BOUNDS } from '../../services/map.service';
 import { TemaService } from '../../services/tema.service';
 
-/** Titolo e suffisso della legenda per ciascuna metrica. */
-const LEGENDA: Record<MetricaMappa, { titolo: string; suffisso: string }> = {
-  densita: { titolo: 'Imprese ogni 1.000 ab.', suffisso: '' },
-  femminili: { titolo: 'Quota imprese femminili', suffisso: '%' },
-  giovanili: { titolo: 'Quota imprese giovanili', suffisso: '%' },
-};
-
 /**
  * FEATURE 1 — Mappa choropleth della Puglia.
  *
@@ -146,7 +139,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const geo = this.data.geo();
     if (!this.mappa || !geo) return;
 
-    const metrica = FilterService.metrica(this.filtri);
+    const metrica = this.filtri.metrica;
     const comuni = this.data.comuni();
 
     // La scala si calcola sui comuni che superano i filtri, cosi il gradiente
@@ -183,7 +176,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         const comune = this.data.perCodice(props.istat);
         if (!comune) return;
 
-        layer.bindTooltip(this.mapService.tooltipComune(comune), {
+        layer.bindTooltip(this.mapService.tooltipComune(comune, metrica), {
           sticky: true,
           direction: 'top',
           className: 'ip-tooltip',
@@ -243,7 +236,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     if (!this.mappa) return;
     if (this.legenda) this.mappa.removeControl(this.legenda);
 
-    const cfg = LEGENDA[metrica];
+    const cfg = this.mapService.etichettaMetrica(metrica);
     this.legenda = this.mapService.creaLegenda(
       cfg.titolo,
       this.mapService.etichetteQuantili(ordinati, cfg.suffisso),
